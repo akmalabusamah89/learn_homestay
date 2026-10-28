@@ -103,3 +103,65 @@ async function deleteUser(userId) {
         alert("Error connecting to server.");
     }
 }
+
+// Load data automatically when the admin panel opens
+document.addEventListener('DOMContentLoaded', () => {
+    // ... your existing code ...
+    if (localStorage.getItem('token')) {
+        loadAdminBookings();
+        loadAdminUsers();
+    }
+});
+
+async function loadAdminBookings() {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/bookings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const bookings = await res.json();
+        
+        const container = document.getElementById('adminBookingsList');
+        if (!container) return;
+
+        if (!bookings.length) {
+            container.innerHTML = `<p style="color: #666;">No bookings found.</p>`;
+            return;
+        }
+
+        container.innerHTML = bookings.map(b => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; background: #fff;">
+                <div>
+                    <strong>Booking ID: ${b.id}</strong> — Property: ${b.homestay_id || 'N/A'} <br>
+                    <small style="color: #666;">Dates: ${b.check_in} to ${b.check_out}</small>
+                </div>
+                <button onclick="deleteBooking(${b.id})" class="btn-outline" style="border-color: #dc3545; color: #dc3545; padding: 6px 12px;">Delete</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error("Error loading bookings:", err);
+    }
+}
+
+async function deleteBooking(bookingId) {
+    if (!confirm(`Are you sure you want to delete booking #${bookingId}?`)) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            alert("Booking deleted successfully!");
+            loadAdminBookings(); // Refresh the list
+        } else {
+            const data = await res.json();
+            alert(data.detail || "Failed to delete booking.");
+        }
+    } catch (err) {
+        console.error("Delete error:", err);
+        alert("Server connection error.");
+    }
+}
