@@ -30,7 +30,7 @@ async function handleAdminLogin(e) {
     const password = document.getElementById('adminPass').value;
 
     try {
-        const res = await fetch('"https://learn-homestay-api-xxxx.onrender.com"/admin-login', {
+       const res = await fetch(`${API_URL}/admin-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
