@@ -393,6 +393,15 @@ def create_booking(booking: BookingData):
         "total_price": total_price
     }
 
+# Get all users for the admin panel
+@app.get("/admin/users", dependencies=[Depends(require_super_admin)])
+def get_admin_users():
+    with get_database() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, username, email, role FROM learn.users ORDER BY id ASC;")
+            users = cursor.fetchall()
+    return users
+
 @app.get("/bookings", dependencies=[Depends(require_any_owner_or_admin)])
 def list_bookings(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
