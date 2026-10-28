@@ -37,13 +37,13 @@ async function loadOwnerProperties() {
     const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
 
     return `
-        <div class="property-card">
-            <img src="${finalImage}" alt="${item.name || 'Homestay Property'}" class="property-img">
-            <div class="property-details">
-                <h3>${item.name}</h3>
-                <p>${item.location}</p>
-                <p>RM ${item.price}</p>
-                <!-- Your action buttons (Edit/Delete) go here -->
+        <div class="prop-card">
+            <img src="${finalImage}" alt="${item.name || 'Homestay Property'}" class="prop-img">
+            <div class="prop-body">
+                <h3 class="prop-title">${item.name}</h3>
+                <p class="prop-loc">${item.location}</p>
+                <p><strong>RM ${item.price}</strong> / night</p>
+                <!-- Your Edit/Delete buttons -->
             </div>
         </div>
     `;
