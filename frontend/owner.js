@@ -41,7 +41,10 @@ async function loadOwnerProperties() {
                     <div class="prop-body">
                         <h3 class="prop-title">${item.title}</h3>
                         <p class="prop-loc">${item.location} • RM ${item.price}/night</p>
-                        <button class="btn-outline" style="width: 100%; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button class="btn-outline" style="flex: 1; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
+                            <button class="btn-outline" style="flex: 1; text-align: center; border-color: #c5221f; color: #c5221f;" onclick="deleteProperty(${item.id})">Delete</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -219,6 +222,27 @@ async function deleteBooking(bookingId) {
             loadBookings();
         } else {
             alert('Failed to delete booking. Super Admin privileges required.');
+        }
+    } catch (err) {
+        alert('Error connecting to backend server.');
+    }
+}
+
+// Delete property action
+async function deleteProperty(id) {
+    if (!confirm('Are you sure you want to delete this property?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/homestays/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            loadOwnerProperties();
+        } else {
+            const errData = await response.json();
+            alert('Failed to delete property: ' + (errData.detail || 'Unauthorized.'));
         }
     } catch (err) {
         alert('Error connecting to backend server.');
