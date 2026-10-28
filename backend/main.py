@@ -459,20 +459,26 @@ def delete_booking(booking_id: int):
 
     return {"message": "Booking deleted successfully", "id": booking_id}
 
+#Delete Homestay
 @app.delete("/api/homestays/{homestay_id}")
-async def delete_homestay(homestay_id: int, db: Session = Depends(get_db)):
-    # Query the database for the homestay by its ID 
-    # (Change 'Homestay' to 'Listing' if that is your model class name)
-    homestay = db.query(Homestay).filter(Homestay.id == homestay_id).first()
-    
-    if not homestay:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Homestay not found"
-        )
-    
-    # Delete and commit changes to the database
-    db.delete(homestay)
-    db.commit()
-    
-    return {"message": "Homestay deleted successfully"}
+async def delete_homestay(homestay_id: int):
+    try:
+        # Connect to your database using your environment variable (e.g., DATABASE_URL)
+        with psycopg.connect(os.getenv("DATABASE_URL"), row_factory=dict_row) as conn:
+            with conn.cursor() as cur:
+                # Check if the homestay exists
+                cur.execute("SELECT * FROM homestays WHERE id = %s", (homestay_id,))
+                homestay = cur.fetchone()
+                
+                if not homestay:
+                    raise HTTPException(status_code=404, detail="Homestay not found")
+                
+                # Delete the record
+                cur.execute("DELETE FROM homestays WHERE id = %s", (homestay_id,))
+                conn.commit()
+                
+        return {"message": "Homestay deleted successfully"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
