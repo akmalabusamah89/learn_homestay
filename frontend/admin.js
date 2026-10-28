@@ -30,7 +30,7 @@ async function handleAdminLogin(e) {
     const password = document.getElementById('adminPass').value;
 
     try {
-       const res = await fetch(`${API_URL}/admin-login`, {
+        const res = await fetch(`${API_URL}/admin-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -49,9 +49,4 @@ async function handleAdminLogin(e) {
         console.error("Login connection error:", err);
         alert("Could not connect to the backend server.");
     }
-}
-
-function logoutAdmin() {
-    localStorage.clear();
-    window.location.href = 'index.html';
 }
