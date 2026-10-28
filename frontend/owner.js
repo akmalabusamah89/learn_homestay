@@ -228,11 +228,12 @@ async function deleteBooking(bookingId) {
     }
 }
 
+// Delete property action
 async function deleteProperty(id) {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/homestays/${id}`, {
+        const response = await fetch(`${API_URL}/api/listings/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
