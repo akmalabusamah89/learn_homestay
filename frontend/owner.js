@@ -30,6 +30,7 @@ async function loadOwnerProperties() {
         grid.innerHTML = currentListings.map(item => {
             // Normalize image URL to handle both full URLs and relative Supabase paths
       // Normalize image URL to handle both full URLs and relative Supabase paths
+   // Normalize image URL
     let imgSrc = item.image_url;
     if (imgSrc && !imgSrc.startsWith('http')) {
         imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
@@ -38,12 +39,16 @@ async function loadOwnerProperties() {
 
     return `
         <div class="prop-card">
-            <img src="${finalImage}" alt="${item.name || 'Homestay Property'}" class="prop-img">
+            <img src="${finalImage}" alt="${item.title || 'Homestay Property'}" class="prop-img">
             <div class="prop-body">
-                <h3 class="prop-title">${item.name}</h3>
+                <h3 class="prop-title">${item.title}</h3>
                 <p class="prop-loc">${item.location}</p>
                 <p><strong>RM ${item.price}</strong> / night</p>
-                <!-- Your Edit/Delete buttons -->
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn btn-outline" onclick="editProperty(${item.id})">Edit Property</button>
+                    <button class="btn btn-danger" onclick="deleteProperty(${item.id})">Delete</button>
+                </div>
             </div>
         </div>
     `;
