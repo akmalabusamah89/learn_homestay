@@ -59,14 +59,18 @@ function logoutAdmin() {
 }
 
 function openManageBookings() {
+    // Clear out the user list container when opening bookings
     const usersContainer = document.getElementById('adminUsersList');
     if (usersContainer) usersContainer.innerHTML = ''; 
+    
     loadAdminBookings();
 }
 
 function openManageUsers() {
+    // Clear out the bookings list container when opening users
     const bookingsContainer = document.getElementById('adminBookingsList');
     if (bookingsContainer) bookingsContainer.innerHTML = ''; 
+    
     loadAdminUsers();
 }
 
