@@ -51,9 +51,55 @@ async function handleAdminLogin(e) {
     }
 }
 
-const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
-    method: 'DELETE',
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+
+async function deleteBooking(bookingId) {
+    if (!confirm("Are you sure you want to delete this booking?")) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/admin/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.ok) {
+            alert("Booking deleted successfully.");
+            // Refresh your bookings list/table here
+            loadAdminBookings(); 
+        } else {
+            const data = await res.json();
+            alert(data.detail || "Failed to delete booking.");
+        }
+    } catch (err) {
+        console.error("Delete booking error:", err);
+        alert("Error connecting to server.");
     }
-});
+}
+
+async function deleteUser(userId) {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.ok) {
+            alert("User deleted successfully.");
+            // Refresh your users list/table here
+            loadAdminUsers();
+        } else {
+            const data = await res.json();
+            alert(data.detail || "Failed to delete user.");
+        }
+    } catch (err) {
+        console.error("Delete user error:", err);
+        alert("Error connecting to server.");
+    }
+}

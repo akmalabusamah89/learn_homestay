@@ -459,7 +459,20 @@ def delete_booking(booking_id: int):
 
     return {"message": "Booking deleted successfully", "id": booking_id}
 
-#Delete Homestay
+    # Delete a user by ID
+@app.delete("/admin/users/{user_id}")
+def delete_user(user_id: int, token: HTTPAuthorizationCredentials = Depends(security)):
+    with get_database() as conn:
+        with conn.cursor() as cur:
+            # Adjust the table name if your users table is named differently (e.g., learn.users or public.users)
+            cur.execute("DELETE FROM learn.users WHERE id = %s RETURNING id;", (user_id,))
+            deleted = cur.fetchone()
+            if not deleted:
+                raise HTTPException(status_code=404, detail="User not found.")
+            conn.commit()
+    return {"message": "User deleted successfully"}
+
+
 # Delete Homestay
 @app.delete("/api/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
 def delete_homestay(homestay_id: int):
