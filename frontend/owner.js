@@ -67,11 +67,11 @@ if (addForm) {
         };
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/homestays', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(newPropertyData)
-            });
+            const response = await fetch(`${API_URL}/homestays`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(newPropertyData)
+});
 
             if (response.ok) {
                 closeAddModal();
@@ -120,7 +120,7 @@ if (editForm) {
         };
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/listings/${id}`, {
+            const response = await fetch(`${API_URL}/bookings`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(updatedData)
@@ -161,9 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load Bookings with strict role-based delete visibility
 async function loadBookings() {
     try {
-        const res = await fetch('http://127.0.0.1:8000/bookings', {
-            headers: getAuthHeaders()
-        });
+   const res = await fetch(`${API_URL}/bookings`, {
+    headers: getAuthHeaders()
+});
         if (!res.ok) return;
         const bookings = await res.json();
 
@@ -201,10 +201,10 @@ async function deleteBooking(bookingId) {
     if (!confirm('Are you sure you want to delete this booking?')) return;
 
     try {
-        const res = await fetch(`http://127.0.0.1:8000/bookings/${bookingId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
+      const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+});
 
         if (res.ok) {
             loadBookings();
