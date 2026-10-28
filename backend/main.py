@@ -323,9 +323,14 @@ class BookingData(BaseModel):
 class StatusData(BaseModel):
     status: str = Field(pattern="^(confirmed|cancelled)$")
 
+
 @app.post("/bookings")
 def create_booking(booking: BookingData):
     try:
+        # Explicitly parse them into date objects in case they came through as strings
+        check_in_date = datetime.strptime(str(booking.check_in), "%Y-%m-%d").date()
+        check_out_date = datetime.strptime(str(booking.check_out), "%Y-%m-%d").date()
+
         with get_database() as connection:
             homestay = connection.execute(
                 "SELECT price, name FROM learn.homestays WHERE id = %s", 
@@ -338,8 +343,8 @@ def create_booking(booking: BookingData):
             price_per_night = homestay["price"]
             homestay_name = homestay["name"]
 
-            # Since check_in and check_out are already date objects, subtraction gives a timedelta
-            nights = (booking.check_out - booking.check_in).days
+            # Now we subtract the converted date objects safely
+            nights = (check_out_date - check_in_date).days
             if nights <= 0:
                 raise HTTPException(status_code=400, detail="Check-out date must be after check-in date.")
                 
@@ -352,18 +357,11 @@ def create_booking(booking: BookingData):
                   AND status != 'cancelled'
                   AND (check_in < %s AND check_out > %s)
                 """,
-                (booking.homestay_id, booking.check_out, booking.check_in)
+                (booking.homestay_id, check_out_date, check_in_date)
             ).fetchone()
 
             if clash:
                 raise HTTPException(status_code=400, detail="These dates are already booked.")
-
-            new_booking = connection.execute(
-                """
-                SELECT id FROM learn.bookings ... # (or your INSERT statement)
-                """,
-                # ... parameters ...
-            ) # Keep your original INSERT query structure here
 
             new_booking = connection.execute(
                 """
@@ -377,8 +375,8 @@ def create_booking(booking: BookingData):
                     booking.guest_name,
                     booking.email,
                     booking.phone,
-                    booking.check_in,
-                    booking.check_out,
+                    check_in_date,
+                    check_out_date,
                     booking.guests,
                     total_price,
                 ),
@@ -387,14 +385,13 @@ def create_booking(booking: BookingData):
             connection.commit()
             booking_id = new_booking["id"]
 
-        # Send email outside or inside the try block safely
         try:
             send_booking_email(
                 to_email=booking.email,
                 guest_name=booking.guest_name,
                 homestay_name=homestay_name,
-                check_in=str(booking.check_in),
-                check_out=str(booking.check_out),
+                check_in=str(check_in_date),
+                check_out=str(check_out_date),
                 total_price=total_price
             )
         except Exception as email_err:
