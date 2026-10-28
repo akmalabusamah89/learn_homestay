@@ -19,15 +19,23 @@
 </div>
     <!-- Protected Admin Dashboard View -->
      
-    <div id="adminPanel" style="display: none;" class="card">
-        <h2>Admin Management Panel</h2>
-        <p>Welcome, Administrator.</p>
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <a href="owner.html" class="btn" style="background: #cfa052;">Go to Owner Dashboard</a>
-            <button onclick="logoutAdmin()" class="btn" style="background: #d9534f;">Log Out</button>
-            <div style="margin-top: 30px;">
-    <h3>Manage Bookings</h3>
-    <div id="adminBookingsList" style="margin-top: 15px;"></div>
+    <div id="adminPanel" class="card" style="padding: 30px; max-width: 800px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 5px;">Admin Management Panel</h2>
+    <p style="color: #666; margin-bottom: 20px;">Welcome, Administrator.</p>
+    
+    <!-- Action Buttons Row -->
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 25px;">
+        <button onclick="openManageBookings()" class="btn-outline" style="padding: 10px 18px; border-radius: 6px; font-weight: 600; height: auto; width: auto;">Manage Bookings</button>
+        <button onclick="openManageUsers()" class="btn-outline" style="padding: 10px 18px; border-radius: 6px; font-weight: 600; height: auto; width: auto;">Manage Users</button>
+        <button onclick="window.location.href='owner.html'" class="btn-primary" style="padding: 10px 18px; border-radius: 6px; font-weight: 600; background: #d4a373; border: none; color: white; cursor: pointer; height: auto; width: auto;">Go to Owner Dashboard</button>
+        <button onclick="logoutAdmin()" class="btn-primary" style="padding: 10px 18px; border-radius: 6px; font-weight: 600; background: #e76f51; border: none; color: white; cursor: pointer; height: auto; width: auto;">Log Out</button>
+    </div>
+
+    <!-- Content Containers (Forced to Block/New Line) -->
+    <div style="width: 100%;">
+        <div id="adminBooknsList" style="margin-top: 15px;"></div>
+        <div id="adminUsersList" style="margin-top: 15px;"></div>
+    </div>
 </div>
 
 <div style="margin-top: 40px;">
