@@ -327,7 +327,9 @@ class StatusData(BaseModel):
 def create_booking(booking: BookingData):
     if booking.check_out <= booking.check_in:
         raise HTTPException(status_code=400, detail="Check-out date must be after check-in date.")
-
+        # Change format string from "%d-%b-%Y" to "%Y-%m-%d"
+check_in_date = datetime.strptime(booking.check_in, "%Y-%m-%d").date()
+check_out_date = datetime.strptime(booking.check_out, "%Y-%m-%d").date()
     with get_database() as connection:
         homestay = connection.execute(
             "SELECT price, name FROM learn.homestays WHERE id = %s", 
