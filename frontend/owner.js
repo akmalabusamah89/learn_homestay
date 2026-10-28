@@ -233,8 +233,7 @@ async function deleteProperty(id) {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-        // Updated path to match your API structure (try /api/homestays or /api/listings)
-        const response = await fetch(`${API_URL}/api/homestays/${id}`, {
+        const response = await fetch(`${API_URL}/homestays/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
@@ -248,5 +247,4 @@ async function deleteProperty(id) {
     } catch (err) {
         alert('Error connecting to backend server.');
     }
-
 }
