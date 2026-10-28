@@ -460,24 +460,22 @@ def delete_booking(booking_id: int):
     return {"message": "Booking deleted successfully", "id": booking_id}
 
 #Delete Homestay
-@app.delete("/api/homestays/{homestay_id}")
-async def delete_homestay(homestay_id: int):
-    try:
-        with psycopg.connect(os.getenv("DATABASE_URL"), row_factory=dict_row) as conn:
-            with conn.cursor() as cur:
-                # Check if the record exists in the correct table
-                cur.execute("SELECT * FROM homestay_listing WHERE id = %s", (homestay_id,))
-                homestay = cur.fetchone()
-                
-                if not homestay:
-                    raise HTTPException(status_code=404, detail="Homestay not found")
-                
-                # Delete the record
-                cur.execute("DELETE FROM homestay_listing WHERE id = %s", (homestay_id,))
-                conn.commit()
-                
-        return {"message": "Homestay deleted successfully"}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Delete Homestay
+@app.delete("/api/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
+def delete_homestay(homestay_id: int):
+    with get_database() as connection:
+        # Check if the record exists in the correct schema table
+        existing = connection.execute(
+            "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
+        ).fetchone()
+
+        if not existing:
+            raise HTTPException(status_code=404, detail="Homestay not found")
+
+        # Delete the record from learn.homestays
+        connection.execute(
+            "DELETE FROM learn.homestays WHERE id = %s", (homestay_id,)
+        )
+        connection.commit()
+
+    return {"message": "Homestay deleted successfully", "id": homestay_id}
