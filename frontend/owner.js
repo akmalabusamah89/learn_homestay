@@ -13,9 +13,9 @@ function getAuthHeaders() {
 
 async function loadOwnerProperties() {
     try {
-       const res = await fetch(`${API_URL}/api/listings`, {
-    headers: getAuthHeaders() // Added authentication headers here!
-});
+        const res = await fetch(`${API_URL}/api/listings`, {
+            headers: getAuthHeaders()
+        });
         if (!res.ok) return;
         currentListings = await res.json();
         
@@ -27,16 +27,25 @@ async function loadOwnerProperties() {
             return;
         }
 
-        grid.innerHTML = currentListings.map(item => `
-            <div class="prop-card">
-                <img src="${item.image_url || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80'}" class="prop-img" alt="${item.title}">
-                <div class="prop-body">
-                    <h3 class="prop-title">${item.title}</h3>
-                    <p class="prop-loc">${item.location} • RM ${item.price}/night</p>
-                    <button class="btn-outline" style="width: 100%; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
+        grid.innerHTML = currentListings.map(item => {
+            // Normalize image URL to handle both full URLs and relative Supabase paths
+            let imgSrc = item.image_url;
+            if (imgSrc && !imgSrc.startsWith('http')) {
+                imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
+            }
+            const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
+
+            return `
+                <div class="prop-card">
+                    <img src="${finalImage}" class="prop-img" alt="${item.title}">
+                    <div class="prop-body">
+                        <h3 class="prop-title">${item.title}</h3>
+                        <p class="prop-loc">${item.location} • RM ${item.price}/night</p>
+                        <button class="btn-outline" style="width: 100%; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } catch (err) {
         console.error("Could not fetch properties", err);
     }
@@ -69,10 +78,10 @@ if (addForm) {
 
         try {
             const response = await fetch(`${API_URL}/homestays`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(newPropertyData)
-});
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(newPropertyData)
+            });
 
             if (response.ok) {
                 closeAddModal();
@@ -121,7 +130,7 @@ if (editForm) {
         };
 
         try {
-            const response = await fetch(`${API_URL}/bookings`, {
+            const response = await fetch(`${API_URL}/homestays/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(updatedData)
@@ -147,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleBadge = document.getElementById('userRoleBadge');
     if (roleBadge) roleBadge.textContent = `Role: ${role}`;
 
-    // STRICT CHECK: Only show Admin Portal button if role is strictly 'admin' or 'super_admin'
     if (role === 'admin' || role === 'super_admin') {
         const adminContainer = document.getElementById('adminPortalContainer');
         if (adminContainer) {
@@ -162,9 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load Bookings with strict role-based delete visibility
 async function loadBookings() {
     try {
-   const res = await fetch(`${API_URL}/bookings`, {
-    headers: getAuthHeaders()
-});
+        const res = await fetch(`${API_URL}/bookings`, {
+            headers: getAuthHeaders()
+        });
         if (!res.ok) return;
         const bookings = await res.json();
 
@@ -202,10 +210,10 @@ async function deleteBooking(bookingId) {
     if (!confirm('Are you sure you want to delete this booking?')) return;
 
     try {
-      const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
-});
+        const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
 
         if (res.ok) {
             loadBookings();
@@ -216,4 +224,3 @@ async function deleteBooking(bookingId) {
         alert('Error connecting to backend server.');
     }
 }
-
