@@ -231,7 +231,7 @@ bookingForm?.addEventListener("submit", async function (event) {
         bookingMessage.className = "form-msg err";
         bookingMessage.textContent = error.message;
     }
-});
+})
 
 document.getElementById("closeBooking")?.addEventListener("click", function () {
     bookingModal.hidden = true;

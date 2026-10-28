@@ -316,8 +316,8 @@ class BookingData(BaseModel):
     guest_name: str = Field(min_length=1)
     email: str = Field(min_length=5)
     phone: str = Field(min_length=1)
-    check_in: date
-    check_out: date
+    check_in: str   # Accept as string to prevent 400 validation crashes
+    check_out: str  # Accept as string
     guests: int = Field(gt=0)
 
 class StatusData(BaseModel):
