@@ -161,70 +161,80 @@ searchInput?.addEventListener("keydown", function (event) {
 });
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    const bookingForm = document.getElementById("bookingForm"); // Make sure this ID matches your HTML form
-    const cardsContainer = document.getElementById("cardsContainer"); // Match your cards container ID
-    const bookingModal = document.getElementById("bookingModal");
-    const bookingMessage = document.getElementById("bookingMessage");
+// ---------- booking ----------
+function openBookingModal(id, name, price) {
+    document.getElementById("bookingHomestayId").value = id;
+    document.getElementById("modalStayTitle").textContent = `Book: ${name}`;
+    document.getElementById("modalStayPrice").textContent = `RM ${price} per night`;
 
-    // One listener for every "Book Now" button
-    cardsContainer?.addEventListener("click", function (event) {
-        const bookButton = event.target.closest(".book-btn");
-        if (!bookButton) return;
+    const checkInInput = document.getElementById("checkInDate");
+    const checkOutInput = document.getElementById("checkOutDate");
+    checkInInput.min = todayAsText();
+    checkOutInput.min = todayAsText();
 
-        openBookingModal(Number(bookButton.dataset.id), bookButton.dataset.name, bookButton.dataset.price);
-    });
+    bookingMessage.textContent = "";
+    bookingModal.hidden = false;
+}
 
-    document.getElementById("checkInDate")?.addEventListener("change", function (event) {
-        const checkOut = document.getElementById("checkOutDate");
-        if (checkOut) checkOut.min = event.target.value;
-    });
+// One listener for every "Book Now" button
+cardsContainer?.addEventListener("click", function (event) {
+    const bookButton = event.target.closest(".book-btn");
+    if (!bookButton) return;
 
-    bookingForm?.addEventListener("submit", async function (event) {
-        event.preventDefault();
+    openBookingModal(Number(bookButton.dataset.id), bookButton.dataset.name, bookButton.dataset.price);
+});
 
-        const bookingData = {
-            homestay_id: parseInt(document.getElementById("bookingHomestayId").value),
-            guest_name: document.getElementById("guestName").value,
-            email: document.getElementById("guestEmail").value,
-            phone: document.getElementById("guestPhone").value,
-            check_in: document.getElementById("checkInDate").value,
-            check_out: document.getElementById("checkOutDate").value,
-            guests: parseInt(document.getElementById("guestCount").value),
-        };
+document.getElementById("checkInDate")?.addEventListener("change", function (event) {
+    document.getElementById("checkOutDate").min = event.target.value;
+});
 
-        bookingMessage.className = "form-msg";
-        bookingMessage.textContent = "Processing reservation...";
+bookingForm?.addEventListener("submit", async function (event) {
+    event.preventDefault();
 
-        try {
-            // Note: If your backend /bookings POST route requires authentication, 
-            // make sure to include the Authorization header here:
-            // headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` }
-            const response = await fetch(`${API_URL}/bookings`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bookingData),
-            });
+    const bookingData = {
+        homestay_id: parseInt(document.getElementById("bookingHomestayId").value),
+        guest_name: document.getElementById("guestName").value,
+        email: document.getElementById("guestEmail").value,
+        phone: document.getElementById("guestPhone").value,
+        check_in: document.getElementById("checkInDate").value,
+        check_out: document.getElementById("checkOutDate").value,
+        guests: parseInt(document.getElementById("guestCount").value),
+    };
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.detail || "Booking failed");
+    bookingMessage.className = "form-msg";
+    bookingMessage.textContent = "Processing reservation... (if server is waking up, this may take a moment)";
 
-            bookingMessage.className = "form-msg ok";
-            bookingMessage.textContent = `Booking confirmed! Total: RM ${data.total_price || ''}`;
-            bookingForm.reset();
+    try {
+        const token = localStorage.getItem("token"); // Grab the stored JWT token
+        
+        const response = await fetch(`${API_URL}/bookings`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}) // Include token if available
+            },
+            body: JSON.stringify(bookingData),
+        });
 
-            setTimeout(function () {
-                bookingModal.hidden = true;
-            }, 2500);
-        } catch (error) {
-            bookingMessage.className = "form-msg err";
-            bookingMessage.textContent = error.message;
-        }
-    });
+        const data = await readJson(response);
+        if (!response.ok) throw new Error(errorTextFrom(data, "Booking failed"));
 
-    document.getElementById("closeBooking")?.addEventListener("click", function () {
-        if (bookingModal) bookingModal.hidden = true;
-    });
+        bookingMessage.className = "form-msg ok";
+        bookingMessage.textContent = `Booking confirmed! Total: RM ${data.total_price || '0'}`;
+        bookingForm.reset();
+
+        setTimeout(function () {
+            bookingModal.hidden = true;
+        }, 2500);
+    } catch (error) {
+        console.error("Booking error details:", error);
+        bookingMessage.className = "form-msg err";
+        bookingMessage.textContent = error.message;
+    }
+});
+
+document.getElementById("closeBooking")?.addEventListener("click", function () {
+    bookingModal.hidden = true;
 });
 
 
