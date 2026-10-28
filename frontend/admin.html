@@ -16,7 +16,16 @@
     </style>
 </head>
 <body>
-<div style="margin-top: 30px;">
+</div>
+    <!-- Protected Admin Dashboard View -->
+     
+    <div id="adminPanel" style="display: none;" class="card">
+        <h2>Admin Management Panel</h2>
+        <p>Welcome, Administrator.</p>
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <a href="owner.html" class="btn" style="background: #cfa052;">Go to Owner Dashboard</a>
+            <button onclick="logoutAdmin()" class="btn" style="background: #d9534f;">Log Out</button>
+            <div style="margin-top: 30px;">
     <h3>Manage Bookings</h3>
     <div id="adminBookingsList" style="margin-top: 15px;"></div>
 </div>
@@ -24,14 +33,6 @@
 <div style="margin-top: 40px;">
     <h3>Manage Users</h3>
     <div id="adminUsersList" style="margin-top: 15px;"></div>
-</div>
-    <!-- Protected Admin Dashboard View -->
-    <div id="adminPanel" style="display: none;" class="card">
-        <h2>Admin Management Panel</h2>
-        <p>Welcome, Administrator.</p>
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <a href="owner.html" class="btn" style="background: #cfa052;">Go to Owner Dashboard</a>
-            <button onclick="logoutAdmin()" class="btn" style="background: #d9534f;">Log Out</button>
         </div>
     </div>
 
