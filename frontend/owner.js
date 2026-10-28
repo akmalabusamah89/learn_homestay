@@ -45,10 +45,10 @@ async function loadOwnerProperties() {
                 <p class="prop-loc">${item.location}</p>
                 <p><strong>RM ${item.price}</strong> / night</p>
                 
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn btn-outline" onclick="editProperty(${item.id})">Edit Property</button>
-                    <button class="btn btn-danger" onclick="deleteProperty(${item.id})">Delete</button>
-                </div>
+   <div style="display: flex; gap: 10px; margin-top: 15px;">
+    <button type="button" class="btn-outline" onclick="editProperty(${item.id})" style="flex: 1;">Edit Property</button>
+    <button type="button" class="btn-outline" onclick="deleteProperty(${item.id})" style="flex: 1; border-color: #dc3545; color: #dc3545;">Delete</button>
+</div>
             </div>
         </div>
     `;
