@@ -12,9 +12,9 @@ function getAuthHeaders() {
 
 async function loadOwnerProperties() {
     try {
-        const res = await fetch('http://127.0.0.1:8000/api/listings', {
-            headers: getAuthHeaders() // Added authentication headers here!
-        });
+       const res = await fetch(`${API_URL}/api/listings`, {
+    headers: getAuthHeaders() // Added authentication headers here!
+});
         if (!res.ok) return;
         currentListings = await res.json();
         
