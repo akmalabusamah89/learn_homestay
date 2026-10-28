@@ -29,25 +29,24 @@ async function loadOwnerProperties() {
 
         grid.innerHTML = currentListings.map(item => {
             // Normalize image URL to handle both full URLs and relative Supabase paths
-            let imgSrc = item.image_url;
-            if (imgSrc && !imgSrc.startsWith('http')) {
-                imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
-            }
-            const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
+      // Normalize image URL to handle both full URLs and relative Supabase paths
+    let imgSrc = item.image_url;
+    if (imgSrc && !imgSrc.startsWith('http')) {
+        imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
+    }
+    const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
 
-            return `
-                <div class="prop-card">
-                    <img src="${finalImage}" class="prop-img" alt="${item.title}">
-                    <div class="prop-body">
-                        <h3 class="prop-title">${item.title}</h3>
-                        <p class="prop-loc">${item.location} • RM ${item.price}/night</p>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <button class="btn-outline" style="flex: 1; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
-                            <button class="btn-outline" style="flex: 1; text-align: center; border-color: #c5221f; color: #c5221f;" onclick="deleteProperty(${item.id})">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+    return `
+        <div class="property-card">
+            <img src="${finalImage}" alt="${item.name || 'Homestay Property'}" class="property-img">
+            <div class="property-details">
+                <h3>${item.name}</h3>
+                <p>${item.location}</p>
+                <p>RM ${item.price}</p>
+                <!-- Your action buttons (Edit/Delete) go here -->
+            </div>
+        </div>
+    `;
         }).join('');
     } catch (err) {
         console.error("Could not fetch properties", err);
