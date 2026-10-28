@@ -1,4 +1,4 @@
-const API_URL = "https://learn-homestay-api-xxxx.onrender.com";
+const API_URL = "https://learn-homestay-api-xpnf.onrender.com";
 document.addEventListener('DOMContentLoaded', () => {
     checkAdminAuth();
 
