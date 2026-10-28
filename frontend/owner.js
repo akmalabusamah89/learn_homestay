@@ -233,7 +233,8 @@ async function deleteProperty(id) {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/homestays/${id}`, {
+        // Updated path to match your API structure (try /api/homestays or /api/listings)
+        const response = await fetch(`${API_URL}/api/homestays/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
@@ -241,10 +242,11 @@ async function deleteProperty(id) {
         if (response.ok) {
             loadOwnerProperties();
         } else {
-            const errData = await response.json();
-            alert('Failed to delete property: ' + (errData.detail || 'Unauthorized.'));
+            const errData = await response.json().catch(() => ({}));
+            alert('Failed to delete property: ' + (errData.detail || 'Not Found or Unauthorized.'));
         }
     } catch (err) {
         alert('Error connecting to backend server.');
     }
+
 }
