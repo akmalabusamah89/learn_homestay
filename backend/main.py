@@ -465,14 +465,14 @@ async def delete_homestay(homestay_id: int):
     try:
         with psycopg.connect(os.getenv("DATABASE_URL"), row_factory=dict_row) as conn:
             with conn.cursor() as cur:
-                # Changed table name from 'homestays' to 'listings'
-                cur.execute("SELECT * FROM listings WHERE id = %s", (homestay_id,))
+                # Use the exact table name found in your Supabase REST URL
+                cur.execute("SELECT * FROM homestay_listing WHERE id = %s", (homestay_id,))
                 homestay = cur.fetchone()
                 
                 if not homestay:
                     raise HTTPException(status_code=404, detail="Homestay not found")
                 
-                cur.execute("DELETE FROM listings WHERE id = %s", (homestay_id,))
+                cur.execute("DELETE FROM homestay_listing WHERE id = %s", (homestay_id,))
                 conn.commit()
                 
         return {"message": "Homestay deleted successfully"}
