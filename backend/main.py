@@ -458,3 +458,21 @@ def delete_booking(booking_id: int):
         raise HTTPException(status_code=404, detail="Booking not found")
 
     return {"message": "Booking deleted successfully", "id": booking_id}
+
+@app.delete("/api/homestays/{homestay_id}")
+async def delete_homestay(homestay_id: int, db: Session = Depends(get_db)):
+    # Query the database for the homestay by its ID 
+    # (Change 'Homestay' to 'Listing' if that is your model class name)
+    homestay = db.query(Homestay).filter(Homestay.id == homestay_id).first()
+    
+    if not homestay:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Homestay not found"
+        )
+    
+    # Delete and commit changes to the database
+    db.delete(homestay)
+    db.commit()
+    
+    return {"message": "Homestay deleted successfully"}
