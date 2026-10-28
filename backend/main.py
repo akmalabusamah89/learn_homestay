@@ -6,7 +6,7 @@ from typing import Optional
 from email.message import EmailMessage
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
-from datetime import date
+from datetime import datetime, date
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
