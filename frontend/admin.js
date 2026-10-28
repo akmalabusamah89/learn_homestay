@@ -50,3 +50,10 @@ async function handleAdminLogin(e) {
         alert("Could not connect to the backend server.");
     }
 }
+
+const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+    method: 'DELETE',
+    headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+});
