@@ -325,8 +325,12 @@ class StatusData(BaseModel):
 
 @app.post("/bookings")
 def create_booking(booking: BookingData):
-    if booking.check_out <= booking.check_in:
-        raise HTTPException(status_code=400, detail="Check-out date must be after check-in date.")
+    try:
+        # Your psycopg / SQL insert logic here
+        ...
+    except Exception as e:
+        print("Booking process crash error:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
         # Change format string from "%d-%b-%Y" to "%Y-%m-%d"
 check_in_date = datetime.strptime(booking.check_in, "%Y-%m-%d").date()
 check_out_date = datetime.strptime(booking.check_out, "%Y-%m-%d").date()
