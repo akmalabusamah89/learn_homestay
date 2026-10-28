@@ -463,18 +463,16 @@ def delete_booking(booking_id: int):
 @app.delete("/api/homestays/{homestay_id}")
 async def delete_homestay(homestay_id: int):
     try:
-        # Connect to your database using your environment variable (e.g., DATABASE_URL)
         with psycopg.connect(os.getenv("DATABASE_URL"), row_factory=dict_row) as conn:
             with conn.cursor() as cur:
-                # Check if the homestay exists
-                cur.execute("SELECT * FROM homestays WHERE id = %s", (homestay_id,))
+                # Changed table name from 'homestays' to 'listings'
+                cur.execute("SELECT * FROM listings WHERE id = %s", (homestay_id,))
                 homestay = cur.fetchone()
                 
                 if not homestay:
                     raise HTTPException(status_code=404, detail="Homestay not found")
                 
-                # Delete the record
-                cur.execute("DELETE FROM homestays WHERE id = %s", (homestay_id,))
+                cur.execute("DELETE FROM listings WHERE id = %s", (homestay_id,))
                 conn.commit()
                 
         return {"message": "Homestay deleted successfully"}
