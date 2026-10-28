@@ -326,78 +326,91 @@ class StatusData(BaseModel):
 @app.post("/bookings")
 def create_booking(booking: BookingData):
     try:
-        # Your psycopg / SQL insert logic here
-        ...
+        with get_database() as connection:
+            homestay = connection.execute(
+                "SELECT price, name FROM learn.homestays WHERE id = %s", 
+                (booking.homestay_id,)
+            ).fetchone()
+            
+            if not homestay:
+                raise HTTPException(status_code=404, detail="Homestay not found")
+            
+            price_per_night = homestay["price"]
+            homestay_name = homestay["name"]
+
+            # Since check_in and check_out are already date objects, subtraction gives a timedelta
+            nights = (booking.check_out - booking.check_in).days
+            if nights <= 0:
+                raise HTTPException(status_code=400, detail="Check-out date must be after check-in date.")
+                
+            total_price = float(price_per_night * nights)
+
+            clash = connection.execute(
+                """
+                SELECT id FROM learn.bookings 
+                WHERE homestay_id = %s 
+                  AND status != 'cancelled'
+                  AND (check_in < %s AND check_out > %s)
+                """,
+                (booking.homestay_id, booking.check_out, booking.check_in)
+            ).fetchone()
+
+            if clash:
+                raise HTTPException(status_code=400, detail="These dates are already booked.")
+
+            new_booking = connection.execute(
+                """
+                SELECT id FROM learn.bookings ... # (or your INSERT statement)
+                """,
+                # ... parameters ...
+            ) # Keep your original INSERT query structure here
+
+            new_booking = connection.execute(
+                """
+                INSERT INTO learn.bookings 
+                (homestay_id, guest_name, email, phone, check_in, check_out, guests, total_price, status) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'confirmed') 
+                RETURNING id
+                """,
+                (
+                    booking.homestay_id,
+                    booking.guest_name,
+                    booking.email,
+                    booking.phone,
+                    booking.check_in,
+                    booking.check_out,
+                    booking.guests,
+                    total_price,
+                ),
+            ).fetchone()
+            
+            connection.commit()
+            booking_id = new_booking["id"]
+
+        # Send email outside or inside the try block safely
+        try:
+            send_booking_email(
+                to_email=booking.email,
+                guest_name=booking.guest_name,
+                homestay_name=homestay_name,
+                check_in=str(booking.check_in),
+                check_out=str(booking.check_out),
+                total_price=total_price
+            )
+        except Exception as email_err:
+            print("Email sending failed, but booking succeeded:", email_err)
+
+        return {
+            "id": booking_id,
+            "message": "Booking created successfully",
+            "total_price": total_price
+        }
+
+    except HTTPException as he:
+        raise he
     except Exception as e:
         print("Booking process crash error:", str(e))
         raise HTTPException(status_code=400, detail=str(e))
-        # Change format string from "%d-%b-%Y" to "%Y-%m-%d"
-check_in_date = datetime.strptime(booking.check_in, "%Y-%m-%d").date()
-check_out_date = datetime.strptime(booking.check_out, "%Y-%m-%d").date()
-    with get_database() as connection:
-        homestay = connection.execute(
-            "SELECT price, name FROM learn.homestays WHERE id = %s", 
-            (booking.homestay_id,)
-        ).fetchone()
-        
-        if not homestay:
-            raise HTTPException(status_code=404, detail="Homestay not found")
-        
-        price_per_night = homestay["price"]
-        homestay_name = homestay["name"]
-
-        nights = (booking.check_out - booking.check_in).days
-        total_price = float(price_per_night * nights)
-
-        clash = connection.execute(
-            """
-            SELECT id FROM learn.bookings 
-            WHERE homestay_id = %s 
-              AND status != 'cancelled'
-              AND (check_in < %s AND check_out > %s)
-            """,
-            (booking.homestay_id, booking.check_out, booking.check_in)
-        ).fetchone()
-
-        if clash:
-            raise HTTPException(status_code=400, detail="These dates are already booked.")
-
-        new_booking = connection.execute(
-            """
-            INSERT INTO learn.bookings 
-            (homestay_id, guest_name, email, phone, check_in, check_out, guests, total_price, status) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'confirmed') 
-            RETURNING id
-            """,
-            (
-                booking.homestay_id,
-                booking.guest_name,
-                booking.email,
-                booking.phone,
-                booking.check_in,
-                booking.check_out,
-                booking.guests,
-                total_price,
-            ),
-        ).fetchone()
-        
-        connection.commit()
-        booking_id = new_booking["id"]
-
-    send_booking_email(
-        to_email=booking.email,
-        guest_name=booking.guest_name,
-        homestay_name=homestay_name,
-        check_in=str(booking.check_in),
-        check_out=str(booking.check_out),
-        total_price=total_price
-    )
-
-    return {
-        "id": booking_id,
-        "message": "Booking created successfully",
-        "total_price": total_price
-    }
 
 # Get all users for the admin panel
 @app.get("/admin/users", dependencies=[Depends(require_super_admin)])
