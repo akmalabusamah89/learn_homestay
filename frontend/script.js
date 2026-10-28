@@ -59,8 +59,15 @@ function todayAsText() {
 // ---------- the home cards ----------
 function cardHtml(stay, index) {
     const photoClass = `photo photo-${(index % 4) + 1}`;
-    const photoStyle = stay.image_url && stay.image_url.startsWith("https://")
-        ? `style="background-image: url('${encodeURI(stay.image_url).replace(/'/g, "%27")}'); background-size: cover; background-position: center;"`
+    
+    // Normalize the image URL: prepend Supabase public storage if it's just a path/filename
+    let imageUrl = stay.image_url || '';
+    if (imageUrl && !imageUrl.startsWith('http')) {
+        imageUrl = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imageUrl}`;
+    }
+
+    const photoStyle = imageUrl
+        ? `style="background-image: url('${encodeURI(imageUrl).replace(/'/g, "%27")}'); background-size: cover; background-position: center;"`
         : "";
 
     return `
