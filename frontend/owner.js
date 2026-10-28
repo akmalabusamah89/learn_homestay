@@ -1,209 +1,218 @@
-const API_URL = "http://127.0.0.1:8000";
+let currentListings = [];
 
-const token = localStorage.getItem("token");
-const role = localStorage.getItem("role");
-
-if (!token) {
-    alert("Please log in first.");
-    window.location.href = "index.html";
+// Helper to get headers with Bearer Token if available
+function getAuthHeaders() {
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
 }
 
-document.getElementById("userBadge").textContent = `Role: ${role || 'Owner'}`;
-if (role === "admin" || role === "super_admin") {
-    document.getElementById("roleEyebrow").textContent = "ADMINISTRATOR DASHBOARD";
-    document.getElementById("bookingsTitle").textContent = "All Platform Bookings";
-}
-
-document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.clear();
-    window.location.href = "index.html";
-});
-
-// Admin Modal Logic
-const adminModal = document.getElementById("adminModal");
-const adminForm = document.getElementById("adminForm");
-const adminMsg = document.getElementById("adminMsg");
-
-document.getElementById("adminLoginBtn").addEventListener("click", () => {
-    adminModal.hidden = false;
-    adminMsg.textContent = "";
-});
-
-document.getElementById("closeAdmin").addEventListener("click", () => {
-    adminModal.hidden = true;
-});
-
-adminForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const username = document.getElementById("adminUsername").value;
-    const password = document.getElementById("adminPassword").value;
-
-    adminMsg.className = "form-msg";
-    adminMsg.textContent = "Authenticating admin...";
-
+async function loadOwnerProperties() {
     try {
-        const response = await fetch(`${API_URL}/admin-login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
+        const res = await fetch('http://127.0.0.1:8000/api/listings', {
+            headers: getAuthHeaders() // Added authentication headers here!
         });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "Admin authentication failed");
-
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
+        if (!res.ok) return;
+        currentListings = await res.json();
         
-        adminMsg.className = "form-msg ok";
-        adminMsg.textContent = "Success! Reloading dashboard...";
+        const grid = document.getElementById('ownerPropertiesGrid');
+        if (!grid) return;
 
-        setTimeout(() => { location.reload(); }, 800);
-    } catch (err) {
-        adminMsg.className = "form-msg err";
-        adminMsg.textContent = err.message;
-    }
-});
-
-// Add Property Modal Logic
-const homestayModal = document.getElementById("homestayModal");
-const homestayForm = document.getElementById("homestayForm");
-const homestayMsg = document.getElementById("homestayMsg");
-
-document.getElementById("openAddHomestayBtn").addEventListener("click", () => {
-    homestayModal.hidden = false;
-    homestayMsg.textContent = "";
-});
-
-document.getElementById("closeHomestay").addEventListener("click", () => {
-    homestayModal.hidden = true;
-});
-
-homestayForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    
-    const payload = {
-        name: document.getElementById("stayName").value,
-        property_type: document.getElementById("stayPropertyType").value,
-        location: document.getElementById("stayLocation").value,
-        price: parseFloat(document.getElementById("stayPrice").value),
-        badge: document.getElementById("stayBadge").value || null,
-        image_url: document.getElementById("stayImageUrl").value || null
-    };
-
-    homestayMsg.className = "form-msg";
-    homestayMsg.textContent = "Creating property...";
-
-    try {
-        const response = await fetch(`${API_URL}/homestays`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "Failed to create homestay");
-
-        homestayMsg.className = "form-msg ok";
-        homestayMsg.textContent = "Property listed successfully!";
-        homestayForm.reset();
-
-        setTimeout(() => {
-            homestayModal.hidden = true;
-            initDashboard();
-        }, 1200);
-    } catch (error) {
-        homestayMsg.className = "form-msg err";
-        homestayMsg.textContent = error.message;
-    }
-});
-
-async function initDashboard() {
-    try {
-        const bookingsRes = await fetch(`${API_URL}/bookings`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (bookingsRes.status === 401) {
-            localStorage.clear();
-            alert("Your session has expired. Please log in again.");
-            window.location.href = "index.html";
+        if (currentListings.length === 0) {
+            grid.innerHTML = `<p style="color: var(--text-muted); padding: 16px;">No properties found. Click "+ Add New Property" to create one.</p>`;
             return;
         }
 
-        if (bookingsRes.ok) {
-            const bookings = await bookingsRes.json();
-            const tbody = document.getElementById("bookingsTableBody");
-            
-            if (bookings.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--muted);">No bookings found.</td></tr>`;
+        grid.innerHTML = currentListings.map(item => `
+            <div class="prop-card">
+                <img src="${item.image_url || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80'}" class="prop-img" alt="${item.title}">
+                <div class="prop-body">
+                    <h3 class="prop-title">${item.title}</h3>
+                    <p class="prop-loc">${item.location} • RM ${item.price}/night</p>
+                    <button class="btn-outline" style="width: 100%; text-align: center;" onclick="openEditModal(${item.id})">Edit Property</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error("Could not fetch properties", err);
+    }
+}
+
+/* Modal Functions for Add Property */
+function openAddModal() {
+    const modal = document.getElementById('addModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeAddModal() {
+    const modal = document.getElementById('addModal');
+    if (modal) modal.style.display = 'none';
+}
+
+const addForm = document.getElementById('addForm');
+if (addForm) {
+    addForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const newPropertyData = {
+            name: document.getElementById('addName').value,
+            property_type: document.getElementById('addType').value,
+            location: document.getElementById('addLocation').value,
+            price: parseFloat(document.getElementById('addPrice').value),
+            image_url: document.getElementById('addImage').value || null,
+            badge: document.getElementById('addBadge').value || null
+        };
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/homestays', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(newPropertyData)
+            });
+
+            if (response.ok) {
+                closeAddModal();
+                addForm.reset();
+                loadOwnerProperties();
             } else {
-                tbody.innerHTML = bookings.map(b => `
-                    <tr>
-                        <td>#${b.id}</td>
-                        <td><strong>${b.homestay_name || 'Homestay #' + b.homestay_id}</strong></td>
-                        <td>${b.guest_name}</td>
-                        <td>${b.check_in}</td>
-                        <td>${b.check_out}</td>
-                        <td>RM ${b.total_price}</td>
-                        <td><span class="status-badge status-${b.status.toLowerCase()}">${b.status}</span></td>
-                        <td>
-                            ${b.status !== 'cancelled' ? `<button class="action-btn cancel-btn" onclick="updateStatus(${b.id}, 'cancelled')">Cancel</button>` : ''}
-                            ${role === 'super_admin' ? `<button class="action-btn delete-btn" onclick="deleteBooking(${b.id})">Delete</button>` : ''}
-                        </td>
-                    </tr>
-                `).join("");
+                const errData = await response.json();
+                alert('Failed to create property: ' + (errData.detail || 'Please make sure you are logged in.'));
             }
+        } catch (err) {
+            alert('Error connecting to backend server.');
         }
-    } catch (err) {
-        console.error("Dashboard error:", err);
-    }
+    });
 }
 
-async function updateStatus(bookingId, newStatus) {
-    if (!confirm(`Are you sure you want to mark booking #${bookingId} as ${newStatus}?`)) return;
+/* Modal Functions for Edit Property */
+function openEditModal(id) {
+    const property = currentListings.find(p => p.id === id);
+    if (!property) return;
 
+    document.getElementById('editId').value = property.id;
+    document.getElementById('editTitle').value = property.title;
+    document.getElementById('editLocation').value = property.location;
+    document.getElementById('editPrice').value = property.price;
+    document.getElementById('editImage').value = property.image_url || '';
+    document.getElementById('editBadge').value = property.badge || '';
+
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+const editForm = document.getElementById('editForm');
+if (editForm) {
+    editForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editId').value;
+        const updatedData = {
+            title: document.getElementById('editTitle').value,
+            location: document.getElementById('editLocation').value,
+            price: parseFloat(document.getElementById('editPrice').value),
+            image_url: document.getElementById('editImage').value || null,
+            badge: document.getElementById('editBadge').value || null
+        };
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/listings/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                closeEditModal();
+                loadOwnerProperties();
+            } else {
+                const errData = await response.json();
+                alert('Failed to update property: ' + (errData.detail || 'Error saving changes.'));
+            }
+        } catch (err) {
+            alert('Error connecting to backend server.');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadOwnerProperties);
+
+document.addEventListener('DOMContentLoaded', () => {
+    const role = localStorage.getItem('role') || 'house_owner';
+    const roleBadge = document.getElementById('userRoleBadge');
+    if (roleBadge) roleBadge.textContent = `Role: ${role}`;
+
+    // STRICT CHECK: Only show Admin Portal button if role is strictly 'admin' or 'super_admin'
+    if (role === 'admin' || role === 'super_admin') {
+        const adminContainer = document.getElementById('adminPortalContainer');
+        if (adminContainer) {
+            adminContainer.innerHTML = `<a href="admin.html" class="btn-outline" style="border-color: var(--gold); color: var(--gold);">Admin Portal</a>`;
+        }
+    }
+
+    loadOwnerProperties();
+    loadBookings();
+});
+
+// Load Bookings with strict role-based delete visibility
+async function loadBookings() {
     try {
-        const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
-            method: "PATCH",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}` 
-            },
-            body: JSON.stringify({ status: newStatus })
+        const res = await fetch('http://127.0.0.1:8000/bookings', {
+            headers: getAuthHeaders()
         });
+        if (!res.ok) return;
+        const bookings = await res.json();
 
-        if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.detail || "Failed to update booking status");
+        const tbody = document.getElementById('bookingsTableBody');
+        if (!tbody) return;
+
+        if (bookings.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">No bookings found.</td></tr>`;
+            return;
         }
 
-        initDashboard();
+        const role = localStorage.getItem('role');
+
+        tbody.innerHTML = bookings.map(b => `
+            <tr>
+                <td>${b.id}</td>
+                <td>${b.homestay_name || 'Property #' + b.homestay_id}</td>
+                <td>${b.guest_name}</td>
+                <td>${b.check_in}</td>
+                <td>${b.check_out}</td>
+                <td>RM ${b.total_price}</td>
+                <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: ${b.status === 'confirmed' ? '#e6f4ea' : '#fce8e6'}; color: ${b.status === 'confirmed' ? '#137333' : '#c5221f'};">${b.status}</span></td>
+                <td>
+                    ${role === 'super_admin' ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border-color: #c5221f; color: #c5221f;" onclick="deleteBooking(${b.id})">Delete</button>` : '<span style="color: var(--text-muted);">—</span>'}
+                </td>
+            </tr>
+        `).join('');
     } catch (err) {
-        alert(err.message);
+        console.error("Could not fetch bookings", err);
     }
 }
 
+// Super admin delete booking action
 async function deleteBooking(bookingId) {
-    if (!confirm(`Are you sure you want to permanently delete booking #${bookingId}?`)) return;
+    if (!confirm('Are you sure you want to delete this booking?')) return;
 
     try {
-        const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+        const res = await fetch(`http://127.0.0.1:8000/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
         });
 
-        if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.detail || "Failed to delete booking");
+        if (res.ok) {
+            loadBookings();
+        } else {
+            alert('Failed to delete booking. Super Admin privileges required.');
         }
-
-        initDashboard();
     } catch (err) {
-        alert(err.message);
+        alert('Error connecting to backend server.');
     }
 }
 
-initDashboard();

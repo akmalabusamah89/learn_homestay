@@ -2,107 +2,278 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Owner Dashboard | InaapRest</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard — InappRest</title>
+    
+    <!-- DM Sans Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --gold: #b88a44;
-            --charcoal: #2f343c;
-            --muted: #6b7280;
-            --line: #e5e7eb;
+            --charcoal: #22252a;
+            --gold: #cfa052;
+            --gold-hover: #b88b42;
+            --bg-light: #f8f9fa;
+            --text-dark: #1a1a1a;
+            --text-muted: #6c757d;
+            --border-color: #e9ecef;
         }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: "DM Sans", sans-serif; color: var(--charcoal); background: #fafafa; }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
 
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 56px; 
-            border-bottom: 1px solid var(--line);
+            padding: 20px 56px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .role-badge {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border-color);
+            background: #fff;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .btn-primary {
+            background-color: var(--gold);
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--gold-hover);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+        }
+
+        .dashboard-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: var(--gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .section-box {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-heading {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .prop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .prop-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
             background: #fff;
         }
-        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.4rem; text-transform: lowercase; text-decoration: none; color: var(--charcoal); }
-        .logo-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; }
-        .header-actions { display: flex; gap: 16px; align-items: center; }
-        
-        .pill {
-            text-decoration: none;
-            color: var(--charcoal);
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 10px 22px;
-            font-weight: 500;
-            background: transparent;
-            cursor: pointer;
+
+        .prop-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
         }
-        .pill-gold { background: var(--gold); color: #fff; border: 0; }
 
-        .dashboard { padding: 48px 56px; max-width: 1280px; margin: 0 auto; }
-        .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 36px; }
-        .eyebrow { color: var(--gold); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.18em; margin: 0 0 12px; }
-        h1 { font-family: "DM Serif Display", serif; font-weight: 400; font-size: 3.5rem; margin: 0; }
+        .prop-body {
+            padding: 16px;
+        }
 
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin: 40px 0 20px; }
-        .section-title { font-family: "DM Serif Display", serif; font-size: 2rem; margin: 0; }
+        .prop-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
 
-        .table-container { background: #fff; border-radius: 20px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 40px; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 16px 24px; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
-        th { background: #f9fafb; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--muted); }
-        tr:last-child td { border-bottom: none; }
-        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; }
-        .status-confirmed { background: #e6f4ea; color: #137333; }
-        .status-cancelled { background: #fce8e6; color: #c5221f; }
+        .prop-loc {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
 
-        .action-btn { padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; border: 0; margin-right: 4px; }
-        .cancel-btn { background: #fef3c7; color: #92400e; }
-        .delete-btn { background: #fee2e2; color: #991b1b; }
-        .action-btn:hover { opacity: 0.85; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
 
-        .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .modal[hidden] { display: none; }
-        .modal-box { background: #fff; border-radius: 24px; padding: 32px; width: 100%; max-width: 440px; }
-        .modal-box h2 { font-family: "DM Serif Display", serif; font-size: 2rem; margin-bottom: 16px; }
-        .modal-box label { display: block; font-size: 0.8rem; font-weight: 700; margin-top: 12px; }
-        .modal-box input, .modal-box select { display: block; width: 100%; margin-top: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; font: inherit; }
-        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
-        .host-btn { background: var(--gold); color: #fff; font-weight: 700; padding: 14px 28px; border-radius: 999px; border: 0; cursor: pointer; }
-        .form-msg { margin: 12px 0 0; min-height: 1.2em; }
-        .form-msg.err { color: #b42318; }
-        .form-msg.ok { color: #2f7d4f; }
+        .modal-content {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <a href="index.html" class="logo">
-            <div class="logo-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            </div> 
-            InaapRest
-        </a>
-        <div class="header-actions">
-            <span id="userBadge" style="font-weight: 500; color: var(--muted);"></span>
-            <button class="pill" id="adminLoginBtn">Admin Portal</button>
-            <button class="pill pill-gold" id="logoutBtn">Log out</button>
-        </div>
-    </header>
+    <a href="index.html" class="logo-link" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+    <img src="logo.jpg" alt="InappRest Logo" style="height: 100px; width: auto; display: block; border-radius: 50%;">
+    </a>
+    <div class="header-actions">
+        <span class="role-badge" id="userRoleBadge">Role: house_owner</span>
+        <!-- Dynamically injected Admin Portal button for admins -->
+        <div id="adminPortalContainer"></div>
+        <a href="index.html" class="btn-outline">Home</a>
+        <a href="index.html" class="btn-outline" style="border-color: #d9534f; color: #d9534f;" onclick="localStorage.clear()">Log out</a>
+    </div>
+</header>
 
-    <main class="dashboard">
+    <main>
         <div class="dashboard-header">
             <div>
-                <p class="eyebrow" id="roleEyebrow">OWNER DASHBOARD</p>
-                <h1 id="dashboardWelcome">Welcome back</h1>
+                <p class="subtitle">OWNER DASHBOARD</p>
+                <h1 class="dashboard-title">Welcome back</h1>
             </div>
-            <button class="host-btn" id="openAddHomestayBtn">+ Add New Property</button>
+            <button class="btn-primary" onclick="openAddModal()">+ Add New Property</button>
         </div>
 
-        <div class="section-header">
-            <h2 class="section-title" id="bookingsTitle">Bookings Overview</h2>
+        <!-- My Properties Section -->
+        <div class="section-box">
+            <h2 class="section-heading">My Properties & Listings</h2>
+            <div class="prop-grid" id="ownerPropertiesGrid">
+                <!-- Dynamically populated property cards -->
+            </div>
         </div>
-        <div class="table-container">
+
+        <!-- Bookings Overview -->
+        <div class="section-box">
+            <h2 class="section-heading">Bookings Overview</h2>
             <table>
                 <thead>
                     <tr>
@@ -117,73 +288,83 @@
                     </tr>
                 </thead>
                 <tbody id="bookingsTableBody">
-                    <!-- Dynamic bookings -->
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">No bookings found.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </main>
 
-    <!-- Add Homestay Modal -->
-    <div class="modal" id="homestayModal" hidden>
-        <form class="modal-box" id="homestayForm">
-            <h2>Add New Property</h2>
-            <label>Homestay Name
-                <input type="text" id="stayName" placeholder="e.g. Bangsar Garden Suite" required>
-            </label>
-            
-            <label>Property Type
-                <select id="stayPropertyType" required>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Condo">Condo</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Terrace">Terrace</option>
-                    <option value="Bungalow">Bungalow</option>
-                </select>
-            </label>
-
-            <label>Photo link (https://...)
-                <input type="url" id="stayImageUrl" placeholder="Paste Supabase Storage public link">
-            </label>
-
-            <label>Location
-                <input type="text" id="stayLocation" placeholder="e.g. Ipoh, Perak" required>
-            </label>
-            <label>Price Per Night (RM)
-                <input type="number" id="stayPrice" step="0.01" placeholder="180.00" required>
-            </label>
-            <label>Badge Label (Optional)
-                <select id="stayBadge">
-                    <option value="">None</option>
-                    <option value="NEW">NEW</option>
-                    <option value="SUPERHOST">SUPERHOST</option>
-                    <option value="POPULAR">POPULAR</option>
-                    <option value="TOP RATED">TOP RATED</option>
-                </select>
-            </label>
-            <p class="form-msg" id="homestayMsg"></p>
-            <div class="modal-actions">
-                <button type="submit" class="host-btn">Create Property</button>
-                <button type="button" class="pill" id="closeHomestay">Cancel</button>
-            </div>
-        </form>
+    <!-- Add Property Modal -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 20px;">Add New Property</h2>
+            <form id="addForm">
+                <div class="form-group">
+                    <label>Property Name / Title</label>
+                    <input type="text" id="addName" required placeholder="e.g. Seaside Sanctuary">
+                </div>
+                <div class="form-group">
+                    <label>Property Type</label>
+                    <input type="text" id="addType" value="Apartment" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="addLocation" required placeholder="e.g. Penang, Malaysia">
+                </div>
+                <div class="form-group">
+                    <label>Price per Night (RM)</label>
+                    <input type="number" id="addPrice" step="0.01" required placeholder="250">
+                </div>
+                <div class="form-group">
+                    <label>Image URL or Filename</label>
+                    <input type="text" id="addImage" placeholder="host-villa.jpg">
+                </div>
+                <div class="form-group">
+                    <label>Badge (Optional)</label>
+                    <input type="text" id="addBadge" placeholder="Superhost">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Property</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Admin Login Modal -->
-    <div class="modal" id="adminModal" hidden>
-        <form class="modal-box" id="adminForm">
-            <h2>Admin Login</h2>
-            <label>Admin Username
-                <input type="text" id="adminUsername" placeholder="e.g. admin1" required>
-            </label>
-            <label>Password
-                <input type="password" id="adminPassword" placeholder="Password" required>
-            </label>
-            <p class="form-msg" id="adminMsg"></p>
-            <div class="modal-actions">
-                <button type="submit" class="host-btn">Login as Admin</button>
-                <button type="button" class="pill" id="closeAdmin">Cancel</button>
-            </div>
-        </form>
+    <!-- Edit Property Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 20px;">Edit Property Details</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>Property Title</label>
+                    <input type="text" id="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="editLocation" required>
+                </div>
+                <div class="form-group">
+                    <label>Price per Night (RM)</label>
+                    <input type="number" id="editPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Image URL or Filename</label>
+                    <input type="text" id="editImage">
+                </div>
+                <div class="form-group">
+                    <label>Badge (e.g. Superhost)</label>
+                    <input type="text" id="editBadge">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="owner.js"></script>
