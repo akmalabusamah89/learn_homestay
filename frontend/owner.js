@@ -250,8 +250,7 @@ async function deleteProperty(id) {
     }
 
     try {
-        const response = await fetch(`${API_URL}/homestays/${id}`, {
-    method: 'DELETE',
+fetch(`${API_URL}/homestays`, {
     headers: getAuthHeaders()
 });
 
