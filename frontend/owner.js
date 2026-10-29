@@ -13,7 +13,8 @@ function getAuthHeaders() {
 
 async function loadOwnerProperties() {
     try {
-        const res = await fetch(`${API_URL}/api/listings`, {
+        // Fixed URL: removed '/api' and changed 'listings' to 'homestays'
+        const res = await fetch(`${API_URL}/homestays`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) return;
@@ -28,30 +29,27 @@ async function loadOwnerProperties() {
         }
 
         grid.innerHTML = currentListings.map(item => {
-            // Normalize image URL to handle both full URLs and relative Supabase paths
-      // Normalize image URL to handle both full URLs and relative Supabase paths
-   // Normalize image URL
-    let imgSrc = item.image_url;
-    if (imgSrc && !imgSrc.startsWith('http')) {
-        imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
-    }
-    const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
+            let imgSrc = item.image_url;
+            if (imgSrc && !imgSrc.startsWith('http')) {
+                imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
+            }
+            const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
 
-    return `
-        <div class="prop-card">
-            <img src="${finalImage}" alt="${item.title || 'Homestay Property'}" class="prop-img">
-            <div class="prop-body">
-                <h3 class="prop-title">${item.title}</h3>
-                <p class="prop-loc">${item.location}</p>
-                <p><strong>RM ${item.price}</strong> / night</p>
-                
-   <div style="display: flex; gap: 10px; margin-top: 15px;">
-    <button type="button" class="btn-outline" onclick="editProperty(${item.id})" style="flex: 1;">Edit Property</button>
-    <button type="button" class="btn-outline" onclick="deleteProperty(${item.id})" style="flex: 1; border-color: #dc3545; color: #dc3545;">Delete</button>
-</div>
-            </div>
-        </div>
-    `;
+            return `
+                <div class="prop-card">
+                    <img src="${finalImage}" alt="${item.title || item.name || 'Homestay Property'}" class="prop-img">
+                    <div class="prop-body">
+                        <h3 class="prop-title">${item.title || item.name}</h3>
+                        <p class="prop-loc">${item.location}</p>
+                        <p><strong>RM ${item.price}</strong> / night</p>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="button" class="btn-outline" onclick="openEditModal(${item.id})" style="flex: 1;">Edit Property</button>
+                            <button type="button" class="btn-outline" onclick="deleteProperty(${item.id})" style="flex: 1; border-color: #dc3545; color: #dc3545;">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }).join('');
     } catch (err) {
         console.error("Could not fetch properties", err);
@@ -110,17 +108,22 @@ function openEditModal(id) {
     if (!property) return;
 
     document.getElementById('editId').value = property.id;
-    document.getElementById('editTitle').value = property.title;
-    document.getElementById('editLocation').value = property.location;
-    document.getElementById('editPrice').value = property.price;
+    // Handle fallback if property model uses 'name' instead of 'title'
+    const titleInput = document.getElementById('editTitle');
+    if (titleInput) titleInput.value = property.title || property.name || '';
+
+    document.getElementById('editLocation').value = property.location || '';
+    document.getElementById('editPrice').value = property.price || '';
     document.getElementById('editImage').value = property.image_url || '';
     document.getElementById('editBadge').value = property.badge || '';
 
-    document.getElementById('editModal').style.display = 'flex';
+    const editModal = document.getElementById('editModal');
+    if (editModal) editModal.style.display = 'flex';
 }
 
 function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
+    const editModal = document.getElementById('editModal');
+    if (editModal) editModal.style.display = 'none';
 }
 
 const editForm = document.getElementById('editForm');
@@ -129,7 +132,7 @@ if (editForm) {
         e.preventDefault();
         const id = document.getElementById('editId').value;
         const updatedData = {
-            title: document.getElementById('editTitle').value,
+            name: document.getElementById('editTitle').value,
             location: document.getElementById('editLocation').value,
             price: parseFloat(document.getElementById('editPrice').value),
             image_url: document.getElementById('editImage').value || null,
@@ -155,8 +158,6 @@ if (editForm) {
         }
     });
 }
-
-document.addEventListener('DOMContentLoaded', loadOwnerProperties);
 
 document.addEventListener('DOMContentLoaded', () => {
     const role = localStorage.getItem('role') || 'house_owner';
@@ -237,7 +238,6 @@ async function deleteProperty(id) {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-        // Removed '/api' from the path to match FastAPI
         const response = await fetch(`${API_URL}/homestays/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
@@ -253,9 +253,8 @@ async function deleteProperty(id) {
         alert('Error connecting to backend server.');
     }
 }
-// Edit property action
+
+// Bridge old function name to the modal opener
 function editProperty(id) {
-    console.log("Edit property clicked for ID:", id);
-    // TODO: Open your edit modal or redirect to an edit form page
-    // Example: window.location.href = `edit-property.html?id=${id}`;
+    openEditModal(id);
 }
