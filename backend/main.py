@@ -25,7 +25,8 @@ def get_database():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://learn-homestay-pages.dev",
+        "https://learn-homestay-pages.dev", #Frontend
+        "https://learn-homestay-api-xpnf.onrender.com", #Backend
     ],
     allow_credentials=True,
     allow_methods=["*"],
