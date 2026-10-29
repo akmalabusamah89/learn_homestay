@@ -272,6 +272,44 @@ def create_homestay(data: HomestayCreateData, credentials: HTTPAuthorizationCred
 
     return {"message": "Homestay created successfully", "id": new_stay["id"]}
 
+    class HomestayUpdateData(BaseModel):
+    name: Optional[str] = None
+    title: Optional[str] = None
+    location: Optional[str] = None
+    price: Optional[float] = None
+    image_url: Optional[str] = None
+    badge: Optional[str] = None
+
+# Update Homestay route using the model and Body(...)
+@app.put("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
+def update_homestay(homestay_id: int, homestay: HomestayUpdateData = Body(...)):
+    with get_database() as connection:
+        existing = connection.execute(
+            "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
+        ).fetchone()
+
+        if not existing:
+            raise HTTPException(status_code=404, detail="Homestay not found")
+
+        connection.execute(
+            """
+            UPDATE learn.homestays 
+            SET name = %s, location = %s, price = %s, image_url = %s, badge = %s 
+            WHERE id = %s
+            """,
+            (
+                homestay.name or homestay.title,
+                homestay.location,
+                homestay.price,
+                homestay.image_url,
+                homestay.badge,
+                homestay_id
+            )
+        )
+        connection.commit()
+
+    return {"message": "Homestay updated successfully", "id": homestay_id}
+
 # Database-backed update route for Edit Property feature
 # Update Homestay (Make sure '/api' is removed)
 @app.put("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
@@ -284,11 +322,25 @@ def update_homestay(homestay_id: int, homestay: HomestayUpdateData):
         if not existing:
             raise HTTPException(status_code=404, detail="Homestay not found")
 
-        # Your update SQL execution here...
+        # Execute the update query
+        connection.execute(
+            """
+            UPDATE learn.homestays 
+            SET name = %s, location = %s, price = %s, image_url = %s, badge = %s 
+            WHERE id = %s
+            """,
+            (
+                homestay.name or homestay.title,
+                homestay.location,
+                homestay.price,
+                homestay.image_url,
+                homestay.badge,
+                homestay_id
+            )
+        )
         connection.commit()
 
     return {"message": "Homestay updated successfully", "id": homestay_id}
-
 
 # ---------------------------------------------------------------
 # Bookings
