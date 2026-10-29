@@ -1,4 +1,5 @@
 const API_URL = "https://learn-homestay-api-xpnf.onrender.com";
+
 let currentListings = [];
 
 // Helper to get headers with Bearer Token if available
