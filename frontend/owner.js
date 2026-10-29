@@ -131,6 +131,8 @@ if (editForm) {
     editForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const id = document.getElementById('editId').value;
+        
+        // This is where the snippet goes:
         const updatedData = {
             name: document.getElementById('editTitle').value,
             location: document.getElementById('editLocation').value,
