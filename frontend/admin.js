@@ -1,5 +1,14 @@
 const API_URL = "https://learn-homestay-api-xpnf.onrender.com";
 
+function escapeHtml(text) {
+    return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAdminAuth();
 
@@ -99,10 +108,10 @@ async function loadAdminBookings() {
                 ${bookings.map(b => `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; background: #fff;">
                         <div>
-                            <strong>Booking ID: ${b.id}</strong> — Property: ${b.homestay_id || 'N/A'}<br>
-                            <small style="color: #666;">Dates: ${b.check_in} to ${b.check_out}</small>
+                            <strong>Booking ID: ${Number(b.id)}</strong> — Property: ${escapeHtml(b.homestay_id || 'N/A')}<br>
+                            <small style="color: #666;">Dates: ${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)}</small>
                         </div>
-                        <button onclick="deleteBooking(${b.id})" style="background: #e76f51; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
+                        <button onclick="deleteBooking(${Number(b.id)})" style="background: #e76f51; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
                     </div>
                 `).join('')}
             </div>
@@ -138,10 +147,10 @@ async function loadAdminUsers() {
                 ${users.map(u => `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; background: #fff;">
                         <div>
-                            <strong>${u.username || u.email}</strong> (Role: ${u.role || 'user'})<br>
-                            <small style="color: #666;">ID: ${u.id} | Email: ${u.email}</small>
+                            <strong>${escapeHtml(u.username || u.email)}</strong> (Role: ${escapeHtml(u.role || 'user')})<br>
+                            <small style="color: #666;">ID: ${Number(u.id)} | Email: ${escapeHtml(u.email)}</small>
                         </div>
-                        <button onclick="deleteUser(${u.id})" style="background: #e76f51; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
+                        <button onclick="deleteUser(${Number(u.id)})" style="background: #e76f51; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
                     </div>
                 `).join('')}
             </div>

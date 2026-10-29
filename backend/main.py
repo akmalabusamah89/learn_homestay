@@ -1,6 +1,11 @@
 import os
-import secrets
+import base64
+import hashlib
+import hmac
+import json
+import time
 import psycopg
+from psycopg import errors as pg_errors
 import smtplib
 from typing import Optional  
 from email.message import EmailMessage
@@ -22,19 +27,72 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 def get_database():
     return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 
+# CORS must list the exact origin the browser sends. The deployed frontend is
+# https://learn-homestay.pages.dev, not "learn-homestay-pages.dev".
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://learn-homestay-pages.dev", #Frontend
-        "https://learn-homestay-api-xpnf.onrender.com", #Backend
+        "https://learn-homestay.pages.dev",           # Frontend (Cloudflare Pages)
+        "http://localhost:8000",                      # Local backend
+        "http://127.0.0.1:8000",
+        "http://localhost:5500",                      # VS Code Live Server
+        "http://127.0.0.1:5500",
     ],
+    # Preview deployments look like <hash>.learn-homestay.pages.dev
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*learn-homestay\.pages\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# token -> {"role": str, "user_id": int}
-active_sessions = {}
+# ---------------------------------------------------------------
+# Session tokens
+# Signed (stateless) tokens survive Render restarts and redeploys.
+# An in-memory dict would log every user out on each restart.
+# ---------------------------------------------------------------
+SECRET_KEY = os.environ.get("SECRET_KEY", "").encode()
+if not SECRET_KEY:
+    # Without SECRET_KEY sessions are per-process: set it in Render's env vars.
+    SECRET_KEY = os.urandom(32)
+    print("WARNING: SECRET_KEY is not set; tokens will not survive a restart.")
+TOKEN_TTL_SECONDS = 60 * 60 * 12
+
+
+def _sign(payload: str) -> str:
+    return hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
+
+
+def create_token(role: str, user_id: int) -> str:
+    body = json.dumps(
+        {"role": role, "user_id": user_id, "exp": int(time.time()) + TOKEN_TTL_SECONDS}
+    )
+    raw = base64.urlsafe_b64encode(body.encode()).decode().rstrip("=")
+    return f"{raw}.{_sign(raw)}"
+
+
+def decode_token(token: str) -> Optional[dict]:
+    raw, _, signature = token.partition(".")
+    if not raw or not signature:
+        return None
+    if not hmac.compare_digest(signature, _sign(raw)):
+        return None
+    try:
+        padded = raw + "=" * (-len(raw) % 4)
+        data = json.loads(base64.urlsafe_b64decode(padded))
+    except Exception:
+        return None
+    if int(data.get("exp", 0)) < time.time():
+        return None
+    return {"role": data.get("role"), "user_id": data.get("user_id")}
+
+
+def session_from(credentials: HTTPAuthorizationCredentials) -> dict:
+    session = decode_token(credentials.credentials)
+    if not session:
+        raise HTTPException(
+            status_code=401, detail="Session expired. Please log in again."
+        )
+    return session
 
 # ---------------------------------------------------------------
 # Pydantic Models (Defined at the top to prevent NameErrors)
@@ -69,13 +127,17 @@ class AdminLoginData(BaseModel):
 def send_booking_email(to_email: str, guest_name: str, homestay_name: str, check_in: str, check_out: str, total_price: float):
     SMTP_SERVER = "smtp.gmail.com"
     SMTP_PORT = 587
-    SENDER_EMAIL = "your-email@gmail.com"
-    SENDER_PASSWORD = "your-gmail-app-password"
+    SENDER_EMAIL = os.environ.get("SMTP_EMAIL")
+    SENDER_PASSWORD = os.environ.get("SMTP_PASSWORD")
+
+    if not SENDER_EMAIL or not SENDER_PASSWORD:
+        print("Booking email skipped: SMTP_EMAIL / SMTP_PASSWORD are not configured")
+        return
 
     msg = EmailMessage()
-    msg.subject = f"Booking Confirmation - {homestay_name}"
-    msg.from_ = SENDER_EMAIL
-    msg.to = to_email
+    msg["Subject"] = f"Booking Confirmation - {homestay_name}"
+    msg["From"] = SENDER_EMAIL
+    msg["To"] = to_email
     
     msg.set_content(f"""
     Hi {guest_name},
@@ -128,22 +190,26 @@ def create_fpx_payment(booking_id: int, amount: float, customer_email: str, cust
 # ---------------------------------------------------------------
 @app.post("/register-owner")
 def register_owner(data: OwnerRegisterData): # Fixed: changed RegisterData to OwnerRegisterData
-    with get_database() as connection:
-        # 1. Insert user into learn.users
-        connection.execute(
-            "INSERT INTO learn.users (username, email, password, role) VALUES (%s, %s, %s, %s)",
-            (data.email, data.email, data.password, "house_owner")
-        )
-        
-        # 2. Fetch the newly created user to get their ID
-        user = connection.execute(
-            "SELECT * FROM learn.users WHERE email = %s", (data.email,)
-        ).fetchone()
+    try:
+        with get_database() as connection:
+            # 1. Insert user into learn.users
+            connection.execute(
+                "INSERT INTO learn.users (username, email, password, role) VALUES (%s, %s, %s, %s)",
+                (data.email, data.email, data.password, "house_owner")
+            )
 
-    # 3. Generate active session token
-    token = secrets.token_hex(16)
-    active_sessions[token] = {"role": user["role"], "user_id": user["id"]}
-    
+            # 2. Fetch the newly created user to get their ID
+            user = connection.execute(
+                "SELECT * FROM learn.users WHERE email = %s", (data.email,)
+            ).fetchone()
+    except pg_errors.UniqueViolation:
+        raise HTTPException(
+            status_code=409, detail="An account with this email already exists."
+        )
+
+    # 3. Generate session token
+    token = create_token(user["role"], user["id"])
+
     # 4. Return token & role so the frontend can save it to localStorage
     return {
         "token": token, 
@@ -162,8 +228,7 @@ def login(login_data: LoginData):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = secrets.token_hex(16)
-    active_sessions[token] = {"role": user["role"], "user_id": user["id"]}
+    token = create_token(user["role"], user["id"])
     
     return {"token": token, "role": user["role"]}
 
@@ -178,8 +243,7 @@ def admin_login(data: AdminLoginData):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid admin credentials or insufficient privileges")
 
-    token = secrets.token_hex(16)
-    active_sessions[token] = {"role": user["role"], "user_id": user["id"]}
+    token = create_token(user["role"], user["id"])
     
     return {"token": token, "role": user["role"]}
 
@@ -188,18 +252,16 @@ def admin_login(data: AdminLoginData):
 # Authorization Guards
 # ---------------------------------------------------------------
 def require_super_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
-    if not session or session.get("role") != "super_admin":
+    session = session_from(credentials)
+    if session.get("role") != "super_admin":
         raise HTTPException(status_code=403, detail="Super Admin access required")
-    return token
+    return session
 
 def require_any_owner_or_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
-    if not session or session.get("role") not in ["super_admin", "admin", "house_owner"]:
+    session = session_from(credentials)
+    if session.get("role") not in ["super_admin", "admin", "house_owner"]:
         raise HTTPException(status_code=401, detail="Please log in")
-    return token
+    return session
 
 
 # ---------------------------------------------------------------
@@ -213,20 +275,15 @@ def health():
 def list_homestays():
     with get_database() as connection:
         rows = connection.execute("""
-            SELECT learn.homestays.*, learn.users.email AS owner_email 
-            FROM learn.homestays 
-            LEFT JOIN learn.users ON learn.homestays.owner_id = learn.users.id
-            ORDER BY learn.homestays.id
+            SELECT id, name, property_type, location, price, badge, image_url
+            FROM learn.homestays
+            ORDER BY id
         """).fetchall()
     return rows
 
 @app.get("/api/listings")
 def get_api_listings(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
-    
-    if not session:
-        raise HTTPException(status_code=401, detail="Please log in")
+    session = session_from(credentials)
     
     role = session.get("role")
     user_id = session.get("user_id")
@@ -258,8 +315,7 @@ class HomestayCreateData(BaseModel):
 
 @app.post("/homestays", dependencies=[Depends(require_any_owner_or_admin)])
 def create_homestay(data: HomestayCreateData, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
+    session = session_from(credentials)
     owner_id = session.get("user_id")
 
     with get_database() as connection:
@@ -291,8 +347,7 @@ def update_homestay(
     homestay: HomestayUpdateData,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    token = credentials.credentials
-    session = active_sessions.get(token)
+    session = session_from(credentials)
 
     fields = homestay.model_dump(exclude_unset=True)
 
@@ -454,8 +509,7 @@ def get_admin_users():
 
 @app.get("/bookings", dependencies=[Depends(require_any_owner_or_admin)])
 def list_bookings(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
+    session = session_from(credentials)
     role = session.get("role")
     user_id = session.get("user_id")
 
@@ -479,8 +533,7 @@ def list_bookings(credentials: HTTPAuthorizationCredentials = Depends(security))
 
 @app.patch("/bookings/{booking_id}", dependencies=[Depends(require_any_owner_or_admin)])
 def set_booking_status(booking_id: int, new_status: StatusData, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    session = active_sessions.get(token)
+    session = session_from(credentials)
     role = session.get("role")
     user_id = session.get("user_id")
 
@@ -524,16 +577,22 @@ def delete_booking(booking_id: int):
     dependencies=[Depends(require_super_admin)],
 )
 def delete_user(user_id: int):
-    with get_database() as connection:
-        result = connection.execute(
-            "DELETE FROM learn.users WHERE id = %s",
-            (user_id,),
+    try:
+        with get_database() as connection:
+            result = connection.execute(
+                "DELETE FROM learn.users WHERE id = %s",
+                (user_id,),
+            )
+
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            connection.commit()
+    except pg_errors.ForeignKeyViolation:
+        raise HTTPException(
+            status_code=409,
+            detail="This user still owns properties or bookings. Remove those first.",
         )
-
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        connection.commit()
 
     return {"message": "User deleted successfully", "id": user_id}
 
@@ -544,30 +603,35 @@ def delete_homestay(
     homestay_id: int,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    token = credentials.credentials
-    session = active_sessions.get(token)
+    session = session_from(credentials)
 
-    with get_database() as connection:
-        if session["role"] == "house_owner":
-            result = connection.execute(
-                """
-                DELETE FROM learn.homestays
-                WHERE id = %s AND owner_id = %s
-                """,
-                (homestay_id, session["user_id"]),
-            )
-        else:
-            result = connection.execute(
-                "DELETE FROM learn.homestays WHERE id = %s",
-                (homestay_id,),
-            )
+    try:
+        with get_database() as connection:
+            if session["role"] == "house_owner":
+                result = connection.execute(
+                    """
+                    DELETE FROM learn.homestays
+                    WHERE id = %s AND owner_id = %s
+                    """,
+                    (homestay_id, session["user_id"]),
+                )
+            else:
+                result = connection.execute(
+                    "DELETE FROM learn.homestays WHERE id = %s",
+                    (homestay_id,),
+                )
 
-        if result.rowcount == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="Homestay not found or unauthorized",
-            )
+            if result.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Homestay not found or unauthorized",
+                )
 
-        connection.commit()
+            connection.commit()
+    except pg_errors.ForeignKeyViolation:
+        raise HTTPException(
+            status_code=409,
+            detail="This property still has bookings. Delete or cancel those bookings first.",
+        )
 
     return {"message": "Homestay deleted successfully", "id": homestay_id}

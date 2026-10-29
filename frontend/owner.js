@@ -12,13 +12,39 @@ function getAuthHeaders() {
     return headers;
 }
 
+function escapeHtml(text) {
+    return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function sendToLogin() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    window.location.href = 'index.html';
+}
+
 async function loadOwnerProperties() {
+    if (!localStorage.getItem('token')) {
+        sendToLogin();
+        return;
+    }
+
     try {
-        // Fixed URL: removed '/api' and changed 'listings' to 'homestays'
-        const res = await fetch(`${API_URL}/homestays`, {
+        // /api/listings is owner-scoped: owners only see their own properties.
+        const res = await fetch(`${API_URL}/api/listings`, {
             headers: getAuthHeaders()
         });
-        if (!res.ok) return;
+
+        if (res.status === 401) {
+            sendToLogin();
+            return;
+        }
+        if (!res.ok) throw new Error('Failed to load properties');
+
         currentListings = await res.json();
         
         const grid = document.getElementById('ownerPropertiesGrid');
@@ -35,18 +61,19 @@ async function loadOwnerProperties() {
                 imgSrc = `https://illhmmrdchgyjoxowqhf.supabase.co/storage/v1/object/public/homestay-photos/${imgSrc}`;
             }
             const finalImage = imgSrc || 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80';
+            const title = item.title || item.name || 'Homestay Property';
 
             return `
                 <div class="prop-card">
-                    <img src="${finalImage}" alt="${item.title || item.name || 'Homestay Property'}" class="prop-img">
+                    <img src="${escapeHtml(finalImage)}" alt="${escapeHtml(title)}" class="prop-img">
                     <div class="prop-body">
-                        <h3 class="prop-title">${item.title || item.name}</h3>
-                        <p class="prop-loc">${item.location}</p>
-                        <p><strong>RM ${item.price}</strong> / night</p>
+                        <h3 class="prop-title">${escapeHtml(title)}</h3>
+                        <p class="prop-loc">${escapeHtml(item.location)}</p>
+                        <p><strong>RM ${escapeHtml(item.price)}</strong> / night</p>
                         
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button type="button" class="btn-outline" onclick="openEditModal(${item.id})" style="flex: 1;">Edit Property</button>
-                            <button type="button" class="btn-outline" onclick="deleteProperty(${item.id})" style="flex: 1; border-color: #dc3545; color: #dc3545;">Delete</button>
+                            <button type="button" class="btn-outline" onclick="openEditModal(${Number(item.id)})" style="flex: 1;">Edit Property</button>
+                            <button type="button" class="btn-outline" onclick="deleteProperty(${Number(item.id)})" style="flex: 1; border-color: #dc3545; color: #dc3545;">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -184,6 +211,10 @@ async function loadBookings() {
         const res = await fetch(`${API_URL}/bookings`, {
             headers: getAuthHeaders()
         });
+        if (res.status === 401) {
+            sendToLogin();
+            return;
+        }
         if (!res.ok) return;
         const bookings = await res.json();
 
@@ -199,15 +230,15 @@ async function loadBookings() {
 
         tbody.innerHTML = bookings.map(b => `
             <tr>
-                <td>${b.id}</td>
-                <td>${b.homestay_name || 'Property #' + b.homestay_id}</td>
-                <td>${b.guest_name}</td>
-                <td>${b.check_in}</td>
-                <td>${b.check_out}</td>
-                <td>RM ${b.total_price}</td>
-                <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: ${b.status === 'confirmed' ? '#e6f4ea' : '#fce8e6'}; color: ${b.status === 'confirmed' ? '#137333' : '#c5221f'};">${b.status}</span></td>
+                <td>${Number(b.id)}</td>
+                <td>${escapeHtml(b.homestay_name || 'Property #' + b.homestay_id)}</td>
+                <td>${escapeHtml(b.guest_name)}</td>
+                <td>${escapeHtml(b.check_in)}</td>
+                <td>${escapeHtml(b.check_out)}</td>
+                <td>RM ${escapeHtml(b.total_price)}</td>
+                <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: ${b.status === 'confirmed' ? '#e6f4ea' : '#fce8e6'}; color: ${b.status === 'confirmed' ? '#137333' : '#c5221f'};">${escapeHtml(b.status)}</span></td>
                 <td>
-                    ${role === 'super_admin' ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border-color: #c5221f; color: #c5221f;" onclick="deleteBooking(${b.id})">Delete</button>` : '<span style="color: var(--text-muted);">—</span>'}
+                    ${role === 'super_admin' ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border-color: #c5221f; color: #c5221f;" onclick="deleteBooking(${Number(b.id)})">Delete</button>` : '<span style="color: var(--text-muted);">—</span>'}
                 </td>
             </tr>
         `).join('');
@@ -242,7 +273,7 @@ async function deleteProperty(id) {
 
     if (!token) {
         alert("Your session has expired. Please log in again.");
-        window.location.href = "login.html";
+        sendToLogin();
         return;
     }
 
@@ -251,9 +282,10 @@ async function deleteProperty(id) {
     }
 
     try {
-fetch(`${API_URL}/homestays`, {
-    headers: getAuthHeaders()
-});
+        const response = await fetch(`${API_URL}/homestays/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()
+        });
 
         if (response.ok) {
             alert("Property deleted successfully.");
@@ -265,9 +297,7 @@ fetch(`${API_URL}/homestays`, {
 
         if (response.status === 401) {
             alert("Your login session is invalid or expired. Please log in again.");
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-            window.location.href = "login.html";
+            sendToLogin();
             return;
         }
 

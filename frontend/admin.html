@@ -12,13 +12,15 @@
         .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; }
         .form-group input { width: 100%; padding: 10px; border: 1px solid #e9ecef; border-radius: 8px; box-sizing: border-box; }
         .btn { flex: 1; padding: 12px; border-radius: 999px; font-weight: 600; font-family: inherit; border: none; cursor: pointer; text-decoration: none; text-align: center; color: #fff; display: inline-block; box-sizing: border-box; }
+        .btn-outline { padding: 10px 18px; border-radius: 6px; font-weight: 600; font-family: inherit; border: 1px solid #e9ecef; background: #fff; color: #22252a; cursor: pointer; }
+        .btn-outline:hover { border-color: #cfa052; color: #cfa052; }
+        .btn-primary { padding: 10px 18px; border-radius: 6px; font-weight: 600; font-family: inherit; border: none; cursor: pointer; color: #fff; }
         h2 { margin-top: 0; }
     </style>
 </head>
 <body>
-</div>
     <!-- Protected Admin Dashboard View -->
-     <div id="adminPanel" class="card" style="padding: 30px; max-width: 800px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+     <div id="adminPanel" class="card" style="display: none; padding: 30px; max-width: 800px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
     <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 5px;">Admin Management Panel</h2>
     <p style="color: #666; margin-bottom: 20px;">Welcome, Administrator.</p>
     
@@ -54,6 +56,6 @@
     </div>
 
     <!-- External Script -->
-    <script src="admin.js"></script>
+    <script src="admin.js?v=3"></script>
 </body>
 </html>
