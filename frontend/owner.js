@@ -253,3 +253,9 @@ async function deleteProperty(id) {
         alert('Error connecting to backend server.');
     }
 }
+// Edit property action
+function editProperty(id) {
+    console.log("Edit property clicked for ID:", id);
+    // TODO: Open your edit modal or redirect to an edit form page
+    // Example: window.location.href = `edit-property.html?id=${id}`;
+}
