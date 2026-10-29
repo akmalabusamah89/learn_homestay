@@ -274,7 +274,7 @@ def create_homestay(data: HomestayCreateData, credentials: HTTPAuthorizationCred
 
     return {"message": "Homestay created successfully", "id": new_stay["id"]}
 
-    class HomestayUpdateData(BaseModel):
+  class HomestayUpdateData(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
     location: Optional[str] = None
