@@ -235,28 +235,52 @@ async function deleteBooking(bookingId) {
     }
 }
 
-// Delete property action
+
 async function deleteProperty(id) {
-    if (!confirm('Are you sure you want to delete this property?')) return;
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        alert("Your session has expired. Please log in again.");
+        window.location.href = "login.html";
+        return;
+    }
+
+    if (!confirm("Are you sure you want to delete this property?")) {
+        return;
+    }
 
     try {
-        const response = await fetch(`${API_URL}/api/homestays/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(
+            `${API_URL}/api/homestays/${id}`,
+            {
+                method: "DELETE",
+                headers: getAuthHeaders()
+            }
+        );
 
         if (response.ok) {
-            loadOwnerProperties();
-        } else {
-            const errData = await response.json().catch(() => ({}));
-            alert('Failed to delete property: ' + (errData.detail || 'Not Found or Unauthorized.'));
+            alert("Property deleted successfully.");
+            await loadOwnerProperties();
+            return;
         }
-    } catch (err) {
-        alert('Error connecting to backend server.');
-    }
-}
 
-// Bridge old function name to the modal opener
-function editProperty(id) {
-    openEditModal(id);
+        const errorData = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+            alert("Your login session is invalid or expired. Please log in again.");
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href = "login.html";
+            return;
+        }
+
+        alert(
+            `Failed to delete property (${response.status}): ` +
+            (errorData.detail || "Unknown error")
+        );
+
+    } catch (error) {
+        console.error("Delete property error:", error);
+        alert("Could not connect to the backend. Please try again.");
+    }
 }
