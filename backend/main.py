@@ -535,10 +535,10 @@ def delete_user(user_id: int, token: HTTPAuthorizationCredentials = Depends(secu
 
 
 # Delete Homestay
-@app.delete("/api/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
+# Delete Homestay (Ensure '/api' is removed from the path)
+@app.delete("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
 def delete_homestay(homestay_id: int):
     with get_database() as connection:
-        # Check if the record exists in the correct schema table
         existing = connection.execute(
             "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
         ).fetchone()
@@ -546,7 +546,6 @@ def delete_homestay(homestay_id: int):
         if not existing:
             raise HTTPException(status_code=404, detail="Homestay not found")
 
-        # Delete the record from learn.homestays
         connection.execute(
             "DELETE FROM learn.homestays WHERE id = %s", (homestay_id,)
         )
