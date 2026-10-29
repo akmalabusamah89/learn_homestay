@@ -237,7 +237,8 @@ async function deleteProperty(id) {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/homestays/${id}`, {
+        // Removed '/api' from the path to match FastAPI
+        const response = await fetch(`${API_URL}/homestays/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
