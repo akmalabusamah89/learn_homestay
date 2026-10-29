@@ -274,43 +274,88 @@ def create_homestay(data: HomestayCreateData, credentials: HTTPAuthorizationCred
 
     return {"message": "Homestay created successfully", "id": new_stay["id"]}
 
-  class HomestayUpdateData(BaseModel):
+  
+class HomestayUpdateData(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
+    property_type: Optional[str] = None
     location: Optional[str] = None
-    price: Optional[float] = None
+    price: Optional[float] = Field(default=None, gt=0)
     image_url: Optional[str] = None
     badge: Optional[str] = None
 
-# Update Homestay route using the model and Body(...)
-@app.put("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
-def update_homestay(homestay_id: int, homestay: HomestayUpdateData = Body(...)):
+
+@app.put("/homestays/{homestay_id}")
+def update_homestay(
+    homestay_id: int,
+    homestay: HomestayUpdateData,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    token = credentials.credentials
+    session = active_sessions.get(token)
+
+    if not session or session.get("role") not in [
+        "house_owner", "admin", "super_admin"
+    ]:
+        raise HTTPException(status_code=401, detail="Please log in")
+
+    fields = homestay.model_dump(exclude_unset=True)
+
+    # Support the frontend's "title" field as a database "name".
+    if "title" in fields:
+        fields["name"] = fields.pop("title")
+
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided")
+
     with get_database() as connection:
-        existing = connection.execute(
-            "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
-        ).fetchone()
+        if session["role"] == "house_owner":
+            existing = connection.execute(
+                """
+                SELECT id FROM learn.homestays
+                WHERE id = %s AND owner_id = %s
+                """,
+                (homestay_id, session["user_id"]),
+            ).fetchone()
+        else:
+            existing = connection.execute(
+                "SELECT id FROM learn.homestays WHERE id = %s",
+                (homestay_id,),
+            ).fetchone()
 
         if not existing:
-            raise HTTPException(status_code=404, detail="Homestay not found")
+            raise HTTPException(
+                status_code=404,
+                detail="Homestay not found or unauthorized",
+            )
+
+        allowed_fields = {
+            "name", "property_type", "location",
+            "price", "image_url", "badge",
+        }
+        if not set(fields).issubset(allowed_fields):
+            raise HTTPException(status_code=400, detail="Invalid field")
+
+        set_clause = ", ".join(
+            f"{field} = %s" for field in fields
+        )
+        values = list(fields.values()) + [homestay_id]
 
         connection.execute(
-            """
-            UPDATE learn.homestays 
-            SET name = %s, location = %s, price = %s, image_url = %s, badge = %s 
+            f"""
+            UPDATE learn.homestays
+            SET {set_clause}
             WHERE id = %s
             """,
-            (
-                homestay.name or homestay.title,
-                homestay.location,
-                homestay.price,
-                homestay.image_url,
-                homestay.badge,
-                homestay_id
-            )
+            values,
         )
         connection.commit()
 
-    return {"message": "Homestay updated successfully", "id": homestay_id}
+    return {
+        "message": "Homestay updated successfully",
+        "id": homestay_id,
+    }
+
 
 # Database-backed update route for Edit Property feature
 # Update Homestay (Make sure '/api' is removed)
@@ -521,34 +566,64 @@ def delete_booking(booking_id: int):
     return {"message": "Booking deleted successfully", "id": booking_id}
 
     # Delete a user by ID
-@app.delete("/admin/users/{user_id}")
-def delete_user(user_id: int, token: HTTPAuthorizationCredentials = Depends(security)):
-    with get_database() as conn:
-        with conn.cursor() as cur:
-            # Adjust the table name if your users table is named differently (e.g., learn.users or public.users)
-            cur.execute("DELETE FROM learn.users WHERE id = %s RETURNING id;", (user_id,))
-            deleted = cur.fetchone()
-            if not deleted:
-                raise HTTPException(status_code=404, detail="User not found.")
-            conn.commit()
-    return {"message": "User deleted successfully"}
+@app.delete(
+    "/admin/users/{user_id}",
+    dependencies=[Depends(require_super_admin)],
+)
+def delete_user(user_id: int):
+    with get_database() as connection:
+        result = connection.execute(
+            "DELETE FROM learn.users WHERE id = %s",
+            (user_id,),
+        )
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        connection.commit()
+
+    return {"message": "User deleted successfully", "id": user_id}
 
 
 # Delete Homestay
-# Delete Homestay (Ensure '/api' is removed from the path)
-@app.delete("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
-def delete_homestay(homestay_id: int):
+
+@app.delete("/homestays/{homestay_id}")
+def delete_homestay(
+    homestay_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    token = credentials.credentials
+    session = active_sessions.get(token)
+
+    if not session or session.get("role") not in [
+        "house_owner", "admin", "super_admin"
+    ]:
+        raise HTTPException(status_code=401, detail="Please log in")
+
     with get_database() as connection:
-        existing = connection.execute(
-            "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
-        ).fetchone()
+        if session["role"] == "house_owner":
+            result = connection.execute(
+                """
+                DELETE FROM learn.homestays
+                WHERE id = %s AND owner_id = %s
+                """,
+                (homestay_id, session["user_id"]),
+            )
+        else:
+            result = connection.execute(
+                "DELETE FROM learn.homestays WHERE id = %s",
+                (homestay_id,),
+            )
 
-        if not existing:
-            raise HTTPException(status_code=404, detail="Homestay not found")
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Homestay not found or unauthorized",
+            )
 
-        connection.execute(
-            "DELETE FROM learn.homestays WHERE id = %s", (homestay_id,)
-        )
         connection.commit()
 
-    return {"message": "Homestay deleted successfully", "id": homestay_id}
+    return {
+        "message": "Homestay deleted successfully",
+        "id": homestay_id,
+    }
