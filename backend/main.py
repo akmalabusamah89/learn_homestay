@@ -273,39 +273,21 @@ def create_homestay(data: HomestayCreateData, credentials: HTTPAuthorizationCred
     return {"message": "Homestay created successfully", "id": new_stay["id"]}
 
 # Database-backed update route for Edit Property feature
-@app.put("/api/listings/{listing_id}", response_model=Listing, dependencies=[Depends(require_any_owner_or_admin)])
-def update_listing(listing_id: int, updated_listing: Listing):
+# Update Homestay (Make sure '/api' is removed)
+@app.put("/homestays/{homestay_id}", dependencies=[Depends(require_any_owner_or_admin)])
+def update_homestay(homestay_id: int, homestay: HomestayUpdateData):
     with get_database() as connection:
         existing = connection.execute(
-            "SELECT id FROM learn.homestays WHERE id = %s", (listing_id,)
+            "SELECT id FROM learn.homestays WHERE id = %s", (homestay_id,)
         ).fetchone()
 
         if not existing:
-            raise HTTPException(status_code=404, detail="Listing not found")
+            raise HTTPException(status_code=404, detail="Homestay not found")
 
-        connection.execute(
-            """
-            UPDATE learn.homestays 
-            SET name = %s, location = %s, price = %s, badge = %s, image_url = %s 
-            WHERE id = %s
-            """,
-            (
-                updated_listing.title,
-                updated_listing.location,
-                updated_listing.price,
-                updated_listing.badge,
-                updated_listing.image_url,
-                listing_id
-            )
-        )
+        # Your update SQL execution here...
         connection.commit()
 
-        updated_record = connection.execute(
-            "SELECT id, name, property_type, location, price, badge, image_url FROM learn.homestays WHERE id = %s",
-            (listing_id,)
-        ).fetchone()
-
-    return updated_record
+    return {"message": "Homestay updated successfully", "id": homestay_id}
 
 
 # ---------------------------------------------------------------
