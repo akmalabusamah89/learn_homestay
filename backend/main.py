@@ -587,6 +587,8 @@ def delete_user(user_id: int):
 
 # Delete Homestay
 
+
+# Delete Homestay
 @app.delete("/homestays/{homestay_id}")
 def delete_homestay(
     homestay_id: int,
@@ -595,12 +597,19 @@ def delete_homestay(
     token = credentials.credentials
     session = active_sessions.get(token)
 
+    # Verify the session and role
     if not session or session.get("role") not in [
         "house_owner", "admin", "super_admin"
     ]:
-        raise HTTPException(status_code=401, detail="Please log in")
+        raise HTTPException(
+            status_code=401,
+            detail="Please log in"
+        )
 
     with get_database() as connection:
+
+        # Owners can delete only their own properties.
+        # Admins can delete any property.
         if session["role"] == "house_owner":
             result = connection.execute(
                 """
@@ -611,19 +620,22 @@ def delete_homestay(
             )
         else:
             result = connection.execute(
-                "DELETE FROM learn.homestays WHERE id = %s",
+                """
+                DELETE FROM learn.homestays
+                WHERE id = %s
+                """,
                 (homestay_id,),
             )
 
         if result.rowcount == 0:
             raise HTTPException(
                 status_code=404,
-                detail="Homestay not found or unauthorized",
+                detail="Homestay not found or unauthorized"
             )
 
         connection.commit()
 
     return {
         "message": "Homestay deleted successfully",
-        "id": homestay_id,
+        "id": homestay_id
     }
